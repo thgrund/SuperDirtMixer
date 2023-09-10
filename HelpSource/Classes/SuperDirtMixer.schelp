@@ -1,0 +1,237 @@
+TITLE:: SuperDirtMixer 
+summary:: Mixer for SuperDirt to provide mixing presets for TidalCycles. This includes level indicators, gain, pan, reverb and eq settings for every orbit (indiviually).
+categories:: Live Coding
+
+DESCRIPTION::
+This is a mixer ui was created for the sound engine strong::SuperDirt:: link::https://github.com/musikinformatik/SuperDirt:: for the strong::TidalCycles:: link::http://tidalcycles.org/:: programming language. The main motivation of this mixer was to get rid of using a DAW like Ableton in a live coding setup, because the author just used it for mixing a live setup. This mixer helps to realize tonal depth, clean frequency separation and a stereo panorama and makes this easily accessible in SuperDirt.
+In general this mixer overwrites the default values of the orbits defaultParentEvents. This means i.e. that it allows to change the value for gain from 1.0 to a different value from 0 to 1.5. These defaultParentEvent values will be used until they get overwritten on the TidalCycles side.
+
+For the EQ of an orbit, this plugin is using EQui (link::https://github.com/muellmusik/EQui::). For this it's needed to add some additional values to the defaultParentEvent to store and change the EQui parameters which will be done during the initialisation of this mixer. The eq functionality was added as a global effect to every orbit. This allows you to change the eq parameters for every orbit and still use all the other filter like hpf or lpf.
+
+note::
+It cannot be excluded that some interfaces will still change or will not be allowed later on.
+This mixer only works together with SuperDirt and uses environment variables, so they must be allowed.
+::
+
+You need to initialize the SuperDirtMixer in your startup file and then you are able to access the ui at any time in a separate SuperCollider file.
+code::
+
+(
+	s.waitForBoot {
+		~dirt = SuperDirt(2, s);
+	    ~dirt.start(57120, 0 ! 14);
+	    // More SuperDirt ...
+
+	    // Initialize the SuperDirtMixer
+	    ~mixer = MrReasonMixer(~dirt, 6010);
+
+	    // You can adjust parameters before you use the ui
+	    ~mixer.orbitLabels = ["d1 - Lead", "d2 - Bass", "d3 - Key", "d4 - Pad", "d5 - Arp", "d6 - Drums", "d7 - Rhytm Git", "d8 - Lead Git", "d9 - Strings", "d10 - FX", "d11 - Kick", "d12 - Cymbals", "d13 - Snare", "d14 - Toms"];
+        ~mixer.enableMasterPeakRMS(0)
+    }
+)
+
+(
+    // When you added your settings in you startup file, then you should be able to use the ui at any time in any differtent SuperCollider file.
+    ~mixer.gui
+
+)
+::
+
+CLASSMETHODS::
+
+private:: prInitGlobalEffect, prLoadPresetFiles, prLoadSynthDefs, prMasterBus
+
+METHOD:: new
+Return a new instance of the SuperDirtMixer.
+
+ARGUMENT:: dirt
+The current dirt instance to be used. Usually this is ~dirt.
+
+INSTANCEMETHODS::
+
+METHOD:: gui
+Renders the mixer ui with all the settings you made before.
+
+IMAGE::mixer.png::
+
+SUBSECTION:: UI configurations
+
+METHOD:: disableMasterPeakRMS
+This will reset the master audio bus and remove the level indicators from the ui.
+
+METHOD:: enableMasterPeakRMS
+This will render the level indicator for a master audio bus. This can be the sum of what you will here on a stereo hardware output.
+
+ARGUMENT:: masterBus
+The recommendation would be to use the output bus that will be used for the stereo hardware output. In most cases this should be simply 0 or can be accessed by Bus.new.
+
+METHOD::orbitLabels
+This is basically an array with the length of ~dirt.orbits wich allows you to change the label of each orbit controls section.
+
+code::
+	// Change the label of each orbit
+	~mixer.orbitLabels = ["d1 - Lead", "d2 - Bass", "d3 - Key", "d4 - Pad", "d5 - Arp", "d6 - Drums", "d7 - Rhytm Git", "d8 - Lead Git", "d9 - Strings", "d10 - FX", "d11 - Kick", "d12 - Cymbals", "d13 - Snare", "d14 - Toms"];
+
+	// Change the label of a specific orbit
+	~mixer.orbitLabels.put(4, "d5 - Arp");
+::
+
+SUBSECTION:: Reverb FX
+The default configuration uses the native reverb algorithm with a fix room sz value of 0.95. But there is an alternative variant to use i.e. one instance of a VST reverb plugin across all orbits (see the example section). For tonal depth it is recommended to keep every audio signal in the same simulated room and just add the amount of a wet signal.
+
+METHOD:: setReverbNativeSize
+This method sets the size for every orbit to ensure that the same size value for the native reverb is used.
+
+ARGUMENT:: size
+This value determines the size of the native reverb room. The default value is 0.95
+
+METHOD:: setReverbVariableName
+With this method you can switch between the native reverb algorithm and a custom reverb algorithm. If you use
+the native one, then the value of size that was maybe adjusted by link::Classes/MrReasonMixer#-setReverbNativeSize:: will be used.
+If you use a different mechanism, then room and size will be nullified.
+
+ARGUMENT:: variableName
+To use the native reverb effect this value needs to be \room. If you want to use a custom reverb algorithm, then this value
+need differ. In the custom VST example below, the value \reverb will be used instead.
+
+SUBSECTION:: Communication with TidalCycles
+This mixer ui is able to send OSC messages to TidalCycles. This will mainly be used to solo or mute orbits. After the mixer was initialized, it automatically trys to establish a connection on location on the port 6010 (TidalCycles default value).
+
+METHOD:: tidalNetAddr
+This method allows to overwrite the default NetAddr to send osc messages to TidalCycles.
+
+code::
+~mixer.tidalNetAddr = NetAddr.new("127.0.0.1", 12345);
+::
+
+
+SUBSECTION:: Preset management
+
+METHOD:: presetPath
+This is the path to the preset folder. The path is always relative to the source code of the SuperDirtMixer. This will be used to load and save presets and displays all the files as available presets in the ui. The default value is "../presets".
+
+METHOD:: loadPreset
+Loads the preset and sets all the orbit defaultParentEvent values to what is defined in the passed preset file.
+
+note::
+Right now this will unfortunately not reload the equalizer settings.
+::
+
+ARGUMENT:: presetFile
+This is the file that is located to the relative path that was specified at link::Classes/MrReasonMixer#-presetPath::.
+
+METHOD:: savePreset
+Saves the current orbit defaultParentEvent values to the passed preset file.
+
+ARGUMENT:: presetFile
+This is the file that is located to the relative path that was specified at link::Classes/MrReasonMixer#-presetPath::.
+
+SUBSECTION:: Direct feature access (without using the UI)
+
+METHOD:: startEQEffect
+You can use this method to run the eq global effects for every orbit manually. This will be used by the link::Classes/MrReasonMixer#-gui:: function internally to start the eq effects.
+
+METHOD:: stopEQEffect
+You can use this method to stop the eq global effects for every orbit manually. This will be used by the link::Classes/MrReasonMixer#-gui:: function internally to stop the eq effects when you close the ui window.
+
+METHOD:: initDefaultParentEvents
+In general this is used internally but you can use it to reset every value in each orbit.
+
+
+EXAMPLES::
+
+This is an example of creating a global fx bus for a VST plugin like the free reverb plugin Supermassive Valhalla (link::https://valhalladsp.com/shop/reverb/valhalla-supermassive/::). You need to install the VSTPlugin exension to use the code below (link::https://github.com/Spacechild1/vstplugin::)
+
+code::
+(
+var numChannels = ~dirt.numChannels;
+
+// This is VST Plugin synthdef example for a global reverb fx
+SynthDef(\valhalla2, {|out|
+	var size = 14; // This value needs to be hard coded and means that it works for 14 orbits.
+	var dryBusses = NamedControl.kr(\dryBusses, (0 ! size ));
+	var wetReverbs = NamedControl.kr(\wetReverbs, (0 ! size)); // Contains the amount of dry/wet for each orbit. Value is between 0 and 1.
+	var fxSound = size.collect({arg i; In.ar(dryBusses[i], numChannels) * wetReverbs[i]}).sum;
+
+	fxSound = VSTPlugin.ar(fxSound, numOut: numChannels, id: \valhalla);
+
+	// out should be a global fx bus for reverb.
+    // With this you could add more of these fx busses without affecting other audio busses.
+	Out.ar(out ,fxSound);
+
+}).add;
+
+
+SynthDef(\masterSynth, { |out, fxBus|
+	var size = 14; // This value needs to be hard coded and means that it works for 14 orbits.
+	var wetSound = In.ar(fxBus, numChannels);
+	var dryBusses = NamedControl.kr(\dryBusses, (0 ! size ));
+	var wetSums = NamedControl.kr(\wetSums, (0 ! size));
+
+	// Reduces the dry bus gain logarithmically for each orbit based on the
+	// global fx amount.
+	var drySound = size.collect({
+		arg i;
+		ReplaceOut.ar (dryBusses[i], In.ar(dryBusses[i], numChannels) * (1/(wetSums[i] +1) ));
+	});
+
+	// Route the global fx bus to i.e. hardware output
+	Out.ar(out, wetSound);
+}).add;
+)
+
+(
+var numChannels = ~dirt.numChannels;
+var masterBus = Bus.new; // Usually this is the output of your sound card (it returns the first bus 0)
+var globalReverbBus = Bus.audio(~dirt.server, ~dirt.numChannels);
+var wetReverbs = Array.fill(~dirt.orbits.size, 0);
+var wetSums = Array.fill(~dirt.orbits.size, 0);
+var dryBusses = ~dirt.orbits.collect({arg item; item.dryBus});
+var globalFXBusses = ~dirt.orbits.collect({arg item; item.globalEffectBus});
+
+// Initilaize the reverb synth
+// Ensure that this Synth be played at the end of the Synth group
+~valhallaSynth = Synth(\valhalla2, [
+	\out, globalReverbBus,
+	id: \valhalla
+], addAction: 'addToTail');
+
+// Namedcontrol to set all the dryBusses for the global fx synth
+~valhallaSynth.set(\dryBusses, dryBusses);
+
+// Link synth with vst plugin and load it
+~valhalla = VSTPluginController(~valhallaSynth, id: \valhalla);
+~valhalla.open("ValhallaSupermassive.vst3");
+
+// Test the settings and play around with them
+~valhalla.editor
+
+// The master synth routes the content of the fxBus to an out bus
+// i.e. the hardware output
+~masterSynth = Synth(\masterSynth, [
+	\out, masterBus,
+	\fxBus, globalReverbBus,
+], addAction: 'addToTail');
+
+~masterSynth.set(\dryBusses, dryBusses);
+~masterSynth.set(\globalFXBusses, globalFXBusses);
+
+// Fix this to swich between VST and Native FX
+~dirt.receiveAction = { |event|
+    var e = event.copy;
+	var orbit = ~dirt.orbits[e.at(\orbit)];
+	var reverb = e.at(\reverb) ?? orbit.defaultParentEvent.at(\reverb) ?? 0;
+	var room = e.at(\room) ?? orbit.defaultParentEvent.at(\room) ?? 0;
+
+	var wet = reverb + room;
+
+	wetReverbs.put(orbit.orbitIndex, reverb);
+	wetSums.put(orbit.orbitIndex, wet);
+
+	~valhallaSynth.set(\wetReverbs, wetReverbs);
+	~masterSynth.set(\wetSums, wetSums);
+};
+
+)
+::
