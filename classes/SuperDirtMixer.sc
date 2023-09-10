@@ -29,7 +29,7 @@ SuperDirtMixer {
 	var <>tidalNetAddr;
 	var <>orbitLabels;
 	var <>prMasterBus;
-	var reverbVariableName = \reverb;
+	var reverbVariableName = \room;
 	var reverbNativeSize = 0.95;
 	var oscMasterLevelSender;
 	var presetFiles;
