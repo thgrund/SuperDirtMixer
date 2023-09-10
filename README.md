@@ -1,7 +1,5 @@
 # SuperDirtMixer
 
-Using Supercolliders VSTPluginController to control VST plugins with TidalCycles.
-
 This is a mixer ui was created for the sound engine **SuperDirt** https://github.com/musikinformatik/SuperDirt for the **TidalCycles** http://tidalcycles.org/ programming language. The main motivation of this mixer was to get rid of using a DAW like Ableton in a live coding setup, because the author just used it for mixing a live setup. This mixer helps to realize tonal depth, clean frequency separation and a stereo panorama and makes this easily accessible in SuperDirt. In general this mixer overwrites the default values of the orbits defaultParentEvents. This means i.e. that it allows to change the value for gain from 1.0 to a different value from 0 to 1.5. These defaultParentEvent values will be used until they get overwritten on the TidalCycles side.
 
 For the EQ of an orbit, this plugin is using EQui (https://github.com/muellmusik/EQui). For this it's needed to add some additional values to the defaultParentEvent to store and change the EQui parameters which will be done during the initialisation of this mixer. The eq functionality was added as a global effect to every orbit. This allows you to change the eq parameters for every orbit and still use all the other filter like hpf or lpf.
