@@ -1,4 +1,4 @@
-TITLE:: SuperDirtMixer 
+TITLE:: SuperDirtMixer
 summary:: Mixer for SuperDirt to provide mixing presets for TidalCycles. This includes level indicators, gain, pan, reverb and eq settings for every orbit (indiviually).
 categories:: Live Coding
 
@@ -23,7 +23,7 @@ code::
 	    // More SuperDirt ...
 
 	    // Initialize the SuperDirtMixer
-	    ~mixer = MrReasonMixer(~dirt, 6010);
+	    ~mixer = SuperDirtMixer(~dirt, 6010);
 
 	    // You can adjust parameters before you use the ui
 	    ~mixer.orbitLabels = ["d1 - Lead", "d2 - Bass", "d3 - Key", "d4 - Pad", "d5 - Arp", "d6 - Drums", "d7 - Rhytm Git", "d8 - Lead Git", "d9 - Strings", "d10 - FX", "d11 - Kick", "d12 - Cymbals", "d13 - Snare", "d14 - Toms"];
@@ -88,7 +88,7 @@ This value determines the size of the native reverb room. The default value is 0
 
 METHOD:: setReverbVariableName
 With this method you can switch between the native reverb algorithm and a custom reverb algorithm. If you use
-the native one, then the value of size that was maybe adjusted by link::Classes/MrReasonMixer#-setReverbNativeSize:: will be used.
+the native one, then the value of size that was maybe adjusted by link::Classes/SuperDirtMixer#-setReverbNativeSize:: will be used.
 If you use a different mechanism, then room and size will be nullified.
 
 ARGUMENT:: variableName
@@ -119,21 +119,32 @@ Right now this will unfortunately not reload the equalizer settings.
 ::
 
 ARGUMENT:: presetFile
-This is the file that is located to the relative path that was specified at link::Classes/MrReasonMixer#-presetPath::.
+This is the file that is located to the relative path that was specified at link::Classes/SuperDirtMixer#-presetPath::.
 
 METHOD:: savePreset
 Saves the current orbit defaultParentEvent values to the passed preset file.
 
 ARGUMENT:: presetFile
-This is the file that is located to the relative path that was specified at link::Classes/MrReasonMixer#-presetPath::.
+This is the file that is located to the relative path that was specified at link::Classes/SuperDirtMixer#-presetPath::.
+
+METHOD:: receivePresetLoad
+This method will be called whenever you load a preset in the ui. This will help you to extend presets with additional informations. The argument of the callback function is the name of the preset file that was loaded.
+
+code::
+(
+    ~mixer.receivePresetLoad = ({
+	    |presetFile| presetFile.postln;
+    });
+)
+::
 
 SUBSECTION:: Direct feature access (without using the UI)
 
 METHOD:: startEQEffect
-You can use this method to run the eq global effects for every orbit manually. This will be used by the link::Classes/MrReasonMixer#-gui:: function internally to start the eq effects.
+You can use this method to run the eq global effects for every orbit manually. This will be used by the link::Classes/SuperDirtMixer#-gui:: function internally to start the eq effects.
 
 METHOD:: stopEQEffect
-You can use this method to stop the eq global effects for every orbit manually. This will be used by the link::Classes/MrReasonMixer#-gui:: function internally to stop the eq effects when you close the ui window.
+You can use this method to stop the eq global effects for every orbit manually. This will be used by the link::Classes/SuperDirtMixer#-gui:: function internally to stop the eq effects when you close the ui window.
 
 METHOD:: initDefaultParentEvents
 In general this is used internally but you can use it to reset every value in each orbit.

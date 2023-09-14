@@ -29,6 +29,7 @@ SuperDirtMixer {
 	var <>tidalNetAddr;
 	var <>orbitLabels;
 	var <>prMasterBus;
+	var <>receivePresetLoad;
 	var reverbVariableName = \room;
 	var reverbNativeSize = 0.95;
 	var oscMasterLevelSender;
@@ -459,6 +460,8 @@ SuperDirtMixer {
 			    .action_({
 				    |view|
 			        this.loadPreset(presetFile);
+
+					receivePresetLoad.value(presetFile);
 
 			        dirt.orbits.do({|item|
 		                setEQuiValues.value(item, equiView);

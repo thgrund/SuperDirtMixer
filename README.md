@@ -29,7 +29,7 @@ Pass this in your startup file after you installed it:
         // More SuperDirt ...
 
         // Initialize the SuperDirtMixer
-        ~mixer = MrReasonMixer(~dirt, 6010);
+        ~mixer = SuperDirtMixer(~dirt, 6010);
 
         // You can adjust parameters before you use the ui
         ~mixer.orbitLabels = ["d1 - Lead", "d2 - Bass", "d3 - Key", "d4 - Pad"];
