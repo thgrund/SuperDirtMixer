@@ -242,7 +242,7 @@ SuperDirtMixer {
 	}
 
 	gui {
-		var window, v, composite, freqScope, orbitUIElements, masterFunc, meterResp, masterOutResp;// local machine
+		var window, v, composite, freqScope, orbitUIElements, masterFunc, meterResp, masterOutResp, loadPresetListener;// local machine
 		var equiView, setEQuiValues;
 		var activeOrbit = dirt.orbits[0];
 		var presetFile = 'Default.csv';
@@ -257,7 +257,7 @@ SuperDirtMixer {
 		var setOrbitEQValues;
 		var leftMasterIndicator = LevelIndicator.new.maxWidth_(12).drawsPeak_(true).warning_(0.9).critical_(1.0);
 	    var rightMasterIndicator = LevelIndicator.new.maxWidth_(12).drawsPeak_(true).warning_(0.9).critical_(1.0);
-
+		var panListener, gainListener, reverbListener;
 
         dirt.startSendRMS;
 
@@ -520,19 +520,6 @@ window.layout_(
 				if (this.prMasterBus.isNil.not, { StaticText.new.string_("Master").minWidth_(100).maxHeight_(30).align_(\center)}),
 				if (this.prMasterBus.isNil.not, { HLayout(leftMasterIndicator,rightMasterIndicator).spacing_(0)}),
 				200
-				/*Button.new.string_("Save EQ").action_({
-					setOrbitEQValues.value(activeOrbit, equiView);
-				}),*/
-
-			/*	Knob().action_({|a|
-					var equiParams = equiView.value;
-					equiParams.loShelfRs = a.value.linlin(0,1,0.6,10);
-					equiView.value = equiParams;
-				}),
-			Knob().action_({|a| equiView.value.loPeakRq = a.value.linlin(0,1,0.1,10); }),
-			Knob().action_({|a| equiView.value.midPeakRq = a.value.linlin(0,1,0.1,10); }),
-			Knob().action_({|a| equiView.value.hiPeakRq = a.value.linlin(0,1,0.1,10); }),
-			Knob().action_({|a| equiView.value.hiShelfRs = a.value.linlin(0,1,0.1,10); })*/
 			),
 			masterFunc.value(window)
 		)
@@ -579,7 +566,63 @@ window.layout_(
 				}.defer;
 			}, ("/rms")).fix;
 
-		window.onClose_({ dirt.stopSendRMS;  meterResp.free; });
+		loadPresetListener = OSCFunc ({|msg|
+				{
+				    var presetFile = msg[1];
+				    this.loadPreset(presetFile);
+
+					receivePresetLoad.value(presetFile);
+
+			        dirt.orbits.do({|item|
+		                setEQuiValues.value(item, equiView);
+	                    equiView.target = item.globalEffects[0].synth;
+
+						panKnobs[item.orbitIndex].value_(item.defaultParentEvent.at(\pan));
+						panNumBoxs[item.orbitIndex].value_(item.defaultParentEvent.at(\pan));
+						gainSliders[item.orbitIndex].value_((item.defaultParentEvent.at(\gain)) /1.5);
+						gainNumBoxs[item.orbitIndex].value_(item.defaultParentEvent.at(\gain));
+						reverbKnobs[item.orbitIndex].value_(item.defaultParentEvent.at(reverbVariableName));
+                    });
+
+			        setEQuiValues.value(activeOrbit, equiView);
+	                equiView.target = activeOrbit.globalEffects[0].synth;
+			}.defer;
+	    }, ("/SuperDirtMixer/loadPreset"), recvPort: 57120).fix;
+
+		panListener = OSCFunc ({|msg|
+				{
+				    var orbitIndex = msg[1];
+				    var value     = msg[2];
+
+				    dirt.orbits.at(orbitIndex).defaultParentEvent.put(\pan, value.linlin(0,1,0,1.0));
+				    panKnobs[orbitIndex].value_(dirt.orbits.at(orbitIndex).defaultParentEvent.at(\pan));
+					panNumBoxs[orbitIndex].value_(dirt.orbits.at(orbitIndex).defaultParentEvent.at(\pan));
+			}.defer;
+	    }, ("/SuperDirtMixer/pan"), recvPort: 57120).fix;
+
+		gainListener = OSCFunc ({|msg|
+				{
+				    var orbitIndex = msg[1];
+				    var value     = msg[2];
+
+				    dirt.orbits.at(orbitIndex).defaultParentEvent.put(\gain, value.linlin(0,1.5,0,1.5));
+					gainSliders[orbitIndex].value_((dirt.orbits.at(orbitIndex).defaultParentEvent.at(\gain)) /1.5);
+					gainNumBoxs[orbitIndex].value_(dirt.orbits.at(orbitIndex).defaultParentEvent.at(\gain));
+			}.defer;
+	    }, ("/SuperDirtMixer/gain"), recvPort: 57120).fix;
+
+		reverbListener = OSCFunc ({|msg|
+				{
+				    var orbitIndex = msg[1];
+				    var value     = msg[2];
+
+				    dirt.orbits.at(orbitIndex).defaultParentEvent.put(reverbVariableName, value.linlin(0,1,0,1.0));
+					reverbKnobs[orbitIndex].value_(dirt.orbits.at(orbitIndex).defaultParentEvent.at(reverbVariableName));
+
+			}.defer;
+	    }, ("/SuperDirtMixer/reverb"), recvPort: 57120).fix;
+
+		window.onClose_({ dirt.stopSendRMS;  meterResp.free; loadPresetListener.free; });
 		window.front;
 	}
 

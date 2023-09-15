@@ -152,6 +152,45 @@ In general this is used internally but you can use it to reset every value in ea
 
 EXAMPLES::
 
+These are a set of examples to change the mixer ui with osc messages from the outside. To use this properly, you need to
+have the ui open with link::Classes/SuperDirtMixer#-gui::.
+
+note::
+Right now it isn't possible to change the EQ settings from outside.
+::
+
+code::
+(
+			// Currently the ose listener only listens to the SuperDirt default port 57120
+			var superDirtOSC = NetAddr.new("127.0.0.1", 57120);
+
+			// You can change the preset an
+			superDirtOSC.sendMsg("/SuperDirtMixer/loadPreset", "Default.csv");
+
+			// You can change the gain, pan and reverb values with OSC
+			// The first value is the orbit number and the second value is the new value that will be set in the orbit defaultParentEvent
+			superDirtOSC.sendMsg("/SuperDirtMixer/gain", 0, 1.4);
+			superDirtOSC.sendMsg("/SuperDirtMixer/pan", 0, 0.7);
+			superDirtOSC.sendMsg("/SuperDirtMixer/reverb", 0, 0.4);
+
+)
+::
+
+If you want to solo or mute an orbit, then use the TidalCycles reference about playback controllers:
+link::https://tidalcycles.org/docs/configuration/MIDIOSC/osc/#playback-controllers::
+
+But the idea in general would be something like this:
+code::
+(
+	    var tidalNetAddr = NetAddr.new("127.0.0.1", 6010);
+
+            tidalNetAddr.sendMsg("/mute", orbitIndex );
+            tidalNetAddr.sendMsg("/unmute", orbitIndex );
+
+	        tidalNetAddr.sendMsg("/solo", orbitIndex );
+            tidalNetAddr.sendMsg("/unsolo", orbitIndex );)
+::
+
 This is an example of creating a global fx bus for a VST plugin like the free reverb plugin Supermassive Valhalla (link::https://valhalladsp.com/shop/reverb/valhalla-supermassive/::). You need to install the VSTPlugin exension to use the code below (link::https://github.com/Spacechild1/vstplugin::)
 
 code::
@@ -246,3 +285,4 @@ var globalFXBusses = ~dirt.orbits.collect({arg item; item.globalEffectBus});
 
 )
 ::
+
