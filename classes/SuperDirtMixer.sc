@@ -258,6 +258,11 @@ SuperDirtMixer {
 		var leftMasterIndicator = LevelIndicator.new.maxWidth_(12).drawsPeak_(true).warning_(0.9).critical_(1.0);
 	    var rightMasterIndicator = LevelIndicator.new.maxWidth_(12).drawsPeak_(true).warning_(0.9).critical_(1.0);
 		var panListener, gainListener, reverbListener;
+		var presetListView = ListView(window,Rect(10,10,30,30))
+		.items_(presetFiles)
+        .action_({ arg sbs;
+				presetFile = presetListView.items[sbs.value] // .value returns the integer
+		});
 
         dirt.startSendRMS;
 
@@ -414,12 +419,6 @@ SuperDirtMixer {
 
     masterFunc = { |window|
 
-		var presetListView = ListView(window,Rect(10,10,30,30))
-		.items_(presetFiles)
-        .action_({ arg sbs;
-				presetFile = presetListView.items[sbs.value] // .value returns the integer
-		});
-
         window.onClose_({ masterOutResp.free; }); // you must have this
 
 	    VLayout(
@@ -568,10 +567,15 @@ window.layout_(
 
 		loadPresetListener = OSCFunc ({|msg|
 				{
-				    var presetFile = msg[1];
-				    this.loadPreset(presetFile);
+				    var receivedPresetFile = msg[1];
+				    var presetFilesAsSymbol = presetFiles.collect({|item| item.asSymbol});
+				    presetFile = receivedPresetFile;
 
-					receivePresetLoad.value(presetFile);
+				    this.loadPreset(receivedPresetFile);
+
+				    presetListView.value = presetFilesAsSymbol.indexOf(receivedPresetFile.asSymbol);
+
+					receivePresetLoad.value(receivedPresetFile);
 
 			        dirt.orbits.do({|item|
 		                setEQuiValues.value(item, equiView);
