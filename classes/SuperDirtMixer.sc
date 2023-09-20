@@ -34,6 +34,7 @@ SuperDirtMixer {
 	var reverbNativeSize = 0.95;
 	var oscMasterLevelSender;
 	var presetFiles;
+	var <orbitLabelViews;
 
 	*new { |dirt|
 		^super.newCopyArgs(dirt).init
@@ -52,6 +53,7 @@ SuperDirtMixer {
 			this.initDefaultParentEvents;
 
 			orbitLabels = Array.fill(dirt.orbits.size, {arg i; "d" ++ (i+1); });
+			orbitLabelViews = Array.new(dirt.orbits.size);
 
 			this.prLoadPresetFiles;
 			"SuperDirtMixer was successfully initialized".postln;
@@ -375,12 +377,15 @@ SuperDirtMixer {
 					orbit.defaultParentEvent.put(reverbVariableName,a.value);
 				});
 
+			var orbitLabelView = StaticText.new.string_(text).minWidth_(100).align_(\center);
+
 			panKnobs.add(panKnob);
 		    panNumBoxs.add(panNumBox);
 		    gainSliders.add(gainSlider);
 		    gainNumBoxs.add(gainNumBox);
             reverbKnobs.add(reverbKnob);
 			eqButtons.add(eqButton);
+			orbitLabelViews.add(orbitLabelView);
 
 			orbitLevelIndicators.add(Array.fill(~dirt.numChannels, {LevelIndicator.new.maxWidth_(12).drawsPeak_(true).warning_(0.9).critical_(1.0)}));
 
@@ -389,7 +394,7 @@ SuperDirtMixer {
 				{eqButton.states_([["EQ", Color.black, Color.white]])});
 
 			VLayout(
-				StaticText.new.string_(text).minWidth_(100).align_(\center),
+				orbitLabelView,
 				panKnob,
 				panNumBox,
 				HLayout(
