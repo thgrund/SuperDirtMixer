@@ -123,7 +123,7 @@ SuperDirtMixer {
 
 		filePaths.do { |filepath|
 		    if(filepath.splitext.last == "scd") {
-			    (dirt:this).use { filepath.load }; "loading synthdefs in %\n".postf(filepath)
+			    (dirt:dirt).use { filepath.load }; "loading synthdefs in %\n".postf(filepath)
 		    }
 		}
 	}
@@ -136,6 +136,8 @@ SuperDirtMixer {
 		presetFiles = filePaths.collect { |filepath|
 		   PathName.new(filepath).fileName;
 		};
+
+		("Loaded presetFiles: " ++ presetFiles).postln;
 	}
 
 	enableMasterPeakRMS { |masterBus|
