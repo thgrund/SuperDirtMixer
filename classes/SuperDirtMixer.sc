@@ -62,6 +62,7 @@ SuperDirtMixer {
 
 	prInitGlobalEffect {
 		dirt.orbits.do { |x|
+			x.globalEffects = x.globalEffects.addFirst(GlobalDirtEffect(\dirt_master_mix, [\masterGain, \gainControlLag]));
 			x.globalEffects = x.globalEffects.addFirst(GlobalDirtEffect(\dirt_global_eq, [\reverbWet]));
 	        x.initNodeTree;
         };
@@ -162,8 +163,8 @@ SuperDirtMixer {
 		         arg item;
 		         var orbitIndex = item[0].asInteger;
 		         var orbit = ~dirt.orbits[orbitIndex];
-		         var gain = item[1].asFloat;
-		         var pan = item[2].asFloat;
+		         var masterGain = item[1].asFloat;
+			     var pan = item[2].asFloat;
 		         var reverb = item[3].asFloat;
 		         var loShelfFreq = item[4].asFloat;
 				 var loShelfGain = item[5].asFloat;
@@ -182,7 +183,7 @@ SuperDirtMixer {
 		         var hiShelfRs = item[18].asFloat;
 
 			     if (orbit.isNil.not, {
-		             orbit.defaultParentEvent[\gain] = gain;
+		             orbit.defaultParentEvent[\masterGain] = masterGain;
 				     orbit.defaultParentEvent[\pan] = pan;
 		             orbit.defaultParentEvent[reverbVariableName] = reverb;
 				     orbit.defaultParentEvent[\loShelfFreq] = loShelfFreq;
@@ -213,7 +214,7 @@ SuperDirtMixer {
 
 		                    file.write(
 					           default[\orbit].orbitIndex.asSymbol ++ ',' ++
-					           default[\gain] ++ ',' ++
+					           default[\masterGain] ++ ',' ++
 					           default[\pan] ++ ',' ++
 					           default[reverbVariableName] ++ ',' ++
 					           default[\loShelfFreq]  ++ ',' ++
@@ -349,17 +350,17 @@ SuperDirtMixer {
 		            orbit.defaultParentEvent.put(\pan,a.value);
 	            });
 
-	        var gainSlider = Slider.new.maxWidth_(30).value_(orbit.defaultParentEvent.at(\gain).linlin(0, 1.5, 0,1)).action_({|a|
-			        orbit.defaultParentEvent.put(\gain,a.value.linlin(0, 1.0, 0,1.5));
-		            gainNumBox.value_(a.value.linlin(0, 1.0, 0,1.5));
+	        var gainSlider = Slider.new.maxWidth_(30).value_(orbit.defaultParentEvent.at(\masterGain).linlin(0, 2, 0,1)).action_({|a|
+			        orbit.defaultParentEvent.put(\masterGain,a.value.linlin(0, 1.0, 0,2));
+		            gainNumBox.value_(a.value.linlin(0, 1.0, 0,2));
 		        });
 
 	        var gainNumBox = NumberBox()
 	            .decimals_(2)
-	            .clipLo_(0).clipHi_(1.5).align_(\center)
-	            .scroll_step_(0.1).value_(orbit.defaultParentEvent.at(\gain)).action_({|a|
-		            gainSlider.value_(a.value.linlin(0, 1.5, 0,1.0));
-		            orbit.defaultParentEvent.put(\gain,a.value);
+	            .clipLo_(0).clipHi_(2).align_(\center)
+	            .scroll_step_(0.1).value_(orbit.defaultParentEvent.at(\masterGain)).action_({|a|
+		            gainSlider.value_(a.value.linlin(0, 2, 0,1.0));
+		            orbit.defaultParentEvent.put(\masterGain,a.value);
 	            });
 
 	        var eqButton = Button.new.string_("EQ").action_({ |a|
@@ -475,8 +476,8 @@ SuperDirtMixer {
 
 						panKnobs[item.orbitIndex].value_(item.defaultParentEvent.at(\pan));
 						panNumBoxs[item.orbitIndex].value_(item.defaultParentEvent.at(\pan));
-						gainSliders[item.orbitIndex].value_((item.defaultParentEvent.at(\gain)) /1.5);
-						gainNumBoxs[item.orbitIndex].value_(item.defaultParentEvent.at(\gain));
+						gainSliders[item.orbitIndex].value_((item.defaultParentEvent.at(\masterGain)) /2);
+						gainNumBoxs[item.orbitIndex].value_(item.defaultParentEvent.at(\masterGain));
 						reverbKnobs[item.orbitIndex].value_(item.defaultParentEvent.at(reverbVariableName));
                     });
 
@@ -495,7 +496,7 @@ SuperDirtMixer {
 
 						panKnobs[item.orbitIndex].value_(0.5);
 						panNumBoxs[item.orbitIndex].value_(0.5);
-						gainSliders[item.orbitIndex].value_(1/1.5);
+						gainSliders[item.orbitIndex].value_(1/2);
 						gainNumBoxs[item.orbitIndex].value_(1.0);
 						reverbKnobs[item.orbitIndex].value_(0.0);
                     });
@@ -590,8 +591,8 @@ window.layout_(
 
 						panKnobs[item.orbitIndex].value_(item.defaultParentEvent.at(\pan));
 						panNumBoxs[item.orbitIndex].value_(item.defaultParentEvent.at(\pan));
-						gainSliders[item.orbitIndex].value_((item.defaultParentEvent.at(\gain)) /1.5);
-						gainNumBoxs[item.orbitIndex].value_(item.defaultParentEvent.at(\gain));
+						gainSliders[item.orbitIndex].value_((item.defaultParentEvent.at(\masterGain)) /2);
+						gainNumBoxs[item.orbitIndex].value_(item.defaultParentEvent.at(\masterGain));
 						reverbKnobs[item.orbitIndex].value_(item.defaultParentEvent.at(reverbVariableName));
                     });
 
@@ -616,11 +617,11 @@ window.layout_(
 				    var orbitIndex = msg[1];
 				    var value     = msg[2];
 
-				    dirt.orbits.at(orbitIndex).defaultParentEvent.put(\gain, value.linlin(0,1.5,0,1.5));
-					gainSliders[orbitIndex].value_((dirt.orbits.at(orbitIndex).defaultParentEvent.at(\gain)) /1.5);
-					gainNumBoxs[orbitIndex].value_(dirt.orbits.at(orbitIndex).defaultParentEvent.at(\gain));
+				    dirt.orbits.at(orbitIndex).defaultParentEvent.put(\masterGain, value.linlin(0,2,0,2));
+					gainSliders[orbitIndex].value_((dirt.orbits.at(orbitIndex).defaultParentEvent.at(\masterGain)) /2);
+					gainNumBoxs[orbitIndex].value_(dirt.orbits.at(orbitIndex).defaultParentEvent.at(\masterGain));
 			}.defer;
-	    }, ("/SuperDirtMixer/gain"), recvPort: 57120).fix;
+	    }, ("/SuperDirtMixer/masterGain"), recvPort: 57120).fix;
 
 		reverbListener = OSCFunc ({|msg|
 				{
