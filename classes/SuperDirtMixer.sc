@@ -1,23 +1,5 @@
 /*
- TODOs
-- [x] EQ effect shall always run (needs a start and stop function like orbits.do(_.startSendRMS(rmsReplyRate, rmsPeakLag)))
-- [x] Add a preset folder to the quark with two sample preset files
-- [x] Change the preset folder path
-- [x] Make the labels configurable
-- [x] Add a complete reset button
-- [x] Read the presets from the set presetFolder and display them in the ui
-- [x] Make the master bus level indicators optional
-- [x] Add a native and advanced configurable version of the reverb fx bus
-- [x] Add a global fx bus
-- [x] Dynamic amounts of level indicator views, based on the number of orbits
-- [x] Extend the orbit defaultParentEvent in this quark
-- [] Create a Github repo
-- [] Add documentation (README + SuperCollider schelp file)
-- [] Anouncement on TidalClub + Discord when it's released
-
-Optional
-- [] DRY for EQui params
-- [] load preset shall be callable from outside with OSC and updates the view
+Optional TODOs
 - [] Dynamic amounts of level indicators per orbit based on the channel count
 - [] UI shall not be shown if EQui is not installed
 - [] Master EQ
@@ -34,7 +16,9 @@ SuperDirtMixer {
 	var reverbNativeSize = 0.95;
 	var oscMasterLevelSender;
 	var presetFiles;
+	var eqDefaultParentEvent;
 	var <orbitLabelViews;
+	var defaultParentEvent, defaultParentEventKeys, eqDefaultEventKeys;
 
 	*new { |dirt|
 		^super.newCopyArgs(dirt).init
@@ -49,11 +33,20 @@ SuperDirtMixer {
 
 			dirt.server.sync;
 
+			defaultParentEvent = Dictionary.new;
+
 			this.prInitGlobalEffect;
 			this.initDefaultParentEvents;
 
 			orbitLabels = Array.fill(dirt.orbits.size, {arg i; "d" ++ (i+1); });
 			orbitLabelViews = Array.new(dirt.orbits.size);
+
+			eqDefaultEventKeys = Array.with(
+				\loShelfFreq, \loShelfGain, \loShelfRs,
+				\loPeakFreq, \loPeakGain, \loPeakRq,
+				\midPeakFreq, \midPeakGain, \midPeakRq,
+				\hiPeakFreq, \hiPeakGain, \hiPeakRq,
+				\hiShelfFreq, \hiShelfGain, \hiShelfRs);
 
 			this.prLoadPresetFiles;
 			"SuperDirtMixer was successfully initialized".postln;
@@ -63,32 +56,28 @@ SuperDirtMixer {
 	prInitGlobalEffect {
 		dirt.orbits.do { |x|
 			x.globalEffects = x.globalEffects.addFirst(GlobalDirtEffect(\dirt_master_mix, [\masterGain, \gainControlLag]));
-			x.globalEffects = x.globalEffects.addFirst(GlobalDirtEffect(\dirt_global_eq, [\reverbWet]));
+			x.globalEffects = x.globalEffects.addFirst(GlobalDirtEffect(\dirt_global_eq, [\activeEq]));
 	        x.initNodeTree;
         };
 	}
 
 	initDefaultParentEvents {
-		dirt.set(\loShelfFreq,100);
-		dirt.set(\loShelfGain ,0);
-		dirt.set(\loShelfRs,1);
-		dirt.set(\loPeakFreq,250);
-		dirt.set(\loPeakGain,0);
-		dirt.set(\loPeakRq,1);
-		dirt.set(\midPeakFreq,1000);
-		dirt.set(\midPeakGain,0);
-		dirt.set(\midPeakRq,1);
-		dirt.set(\hiPeakFreq,3500);
-		dirt.set(\hiPeakGain,0);
-		dirt.set(\hiPeakRq,1);
-		dirt.set(\hiShelfFreq,6000);
-		dirt.set(\hiShelfGain,0);
-		dirt.set(\hiShelfRs,1);
-		dirt.set(reverbVariableName,0.0);
+		var defaultParentEventTemplate =[
+			    \loShelfFreq, 100, \loShelfGain, 0, \loShelfRs, 1,
+			    \loPeakFreq, 250, \loPeakGain, 0, \loPeakRq, 1,
+			    \midPeakFreq, 1000, \midPeakGain, 0, \midPeakRq, 1,
+			    \hiPeakFreq, 3500, \hiPeakGain, 0, \hiPeakRq, 1,
+			    \hiShelfFreq, 6000, \hiShelfGain, 0, \hiShelfRs, 1,
+			    reverbVariableName, 0.0
+		];
 
 		if (reverbVariableName == \room,
-			{dirt.set(\size,reverbNativeSize)},
-			{dirt.set(\size,nil)});
+			{defaultParentEventTemplate.addAll([\size, reverbNativeSize])},
+			{defaultParentEventTemplate.addAll([\size, nil])});
+
+		dirt.set(defaultParentEventTemplate);
+
+		defaultParentEvent.putPairs(defaultParentEventTemplate);
 	}
 
 	setReverbNativeSize { |size|
@@ -153,102 +142,53 @@ SuperDirtMixer {
 	}
 
 	loadPreset { |presetFile|
-		var defaultEvents = CSVFileReader.read((presetPath ++ presetFile).resolveRelative);
-	       defaultEvents.do({
-		         arg item;
-		         var orbitIndex = item[0].asInteger;
-		         var orbit = ~dirt.orbits[orbitIndex];
-		         var masterGain = item[1].asFloat;
-			     var pan = item[2].asFloat;
-		         var reverb = item[3].asFloat;
-		         var loShelfFreq = item[4].asFloat;
-				 var loShelfGain = item[5].asFloat;
-		         var loShelfRs = item[6].asFloat;
-		         var loPeakFreq = item[7].asFloat;
-		         var loPeakGain = item[8].asFloat;
-		         var loPeakRq = item[9].asFloat;
-		         var midPeakFreq = item[10].asFloat;
-		         var midPeakGain = item[11].asFloat;
-		         var midPeakRq = item[12].asFloat;
-		         var hiPeakFreq = item[13].asFloat;
-		         var hiPeakGain = item[14].asFloat;
-		         var hiPeakRq = item[15].asFloat;
-		         var hiShelfFreq = item[16].asFloat;
-		         var hiShelfGain = item[17].asFloat;
-		         var hiShelfRs = item[18].asFloat;
+		var defaultEvents = JSONlib.convertToSC(File.readAllString((presetPath ++ presetFile).resolveRelative, "r"));
 
-			     if (orbit.isNil.not, {
-				     orbit.set(
-					    \masterGain, masterGain,
-					    \pan, pan,
-					    reverbVariableName, reverb,
-					    \loShelfFreq, loShelfFreq,
-					    \loShelfGain, loShelfGain,
-					    \loShelfRs, loShelfRs,
-					    \loPeakFreq, loPeakFreq,
-					    \loPeakGain, loPeakGain,
-					    \loPeakRq, loPeakRq,
-					    \midPeakFreq, midPeakFreq,
-					    \midPeakGain, midPeakGain,
-					    \midPeakRq, midPeakRq,
-					    \hiPeakFreq, hiPeakFreq,
-					    \hiPeakGain, hiPeakGain,
-					    \hiPeakRq, hiPeakRq,
-					    \hiShelfFreq, hiShelfFreq,
-					    \hiShelfGain, hiShelfGain,
-					    \hiShelfRs, hiShelfRs,
-					    \sz, 0.95
-				    )
-                 });
-	         });
+	    defaultEvents.do({
+		     arg defaultEvent, index;
+			 dirt.orbits[index].set(*defaultEvent.asPairs);
+        });
+
 	}
 
 	savePreset { |presetFile|
-			var file = File((presetPath ++ presetFile).resolveRelative, "w");
-                        dirt.orbits.do({
-	                        arg item;
-	                        var default = item.defaultParentEvent;
+		var orbitPresets = Array.new(dirt.orbits.size);
+		var file = File((presetPath ++ presetFile).resolveRelative, "w");
 
-		                    file.write(
-				               item.get(\orbit).orbitIndex.asSymbol ++ ',' ++
-					           item.get(\masterGain) ++ ',' ++
-					           item.get(\pan) ++ ',' ++
-					           item.get(reverbVariableName) ++ ',' ++
-					           item.get(\loShelfFreq)  ++ ',' ++
-				               item.get(\loShelfGain)  ++ ',' ++ƒ
-				               item.get(\loShelfRs)  ++ ',' ++
-				               item.get(\loPeakFreq)  ++ ',' ++
-				               item.get(\loPeakGain)  ++ ',' ++
-				               item.get(\loPeakRq)  ++ ',' ++
-				               item.get(\midPeakFreq)  ++ ',' ++
-				               item.get(\midPeakGain)  ++ ',' ++
-				               item.get(\midPeakRq)  ++ ',' ++
-				               item.get(\hiPeakFreq)  ++ ',' ++
-				               item.get(\hiPeakGain)  ++ ',' ++
-				               item.get(\hiPeakRq)  ++ ',' ++
-				               item.get(\hiShelfFreq)  ++ ',' ++
-				               item.get(\hiShelfGain)  ++ ',' ++
-				               item.get(\hiShelfRs)  ++ "\n"
-				         );
-                      });
+		dirt.orbits.do({
+	         arg orbit;
+  			 var presetEvent = ();
 
-                    file.close;
+			 eqDefaultEventKeys.do({|eventKey| presetEvent.put(eventKey, orbit.get(eventKey)) });
+
+			 presetEvent.put(reverbVariableName, orbit.get(reverbVariableName));
+			 if (reverbVariableName == \room, {
+				presetEvent.put(\size, reverbNativeSize);
+			 });
+
+			 presetEvent.put(\masterGain, orbit.get(\masterGain));
+			 presetEvent.put(\pan, orbit.get(\pan));
+
+			 orbitPresets.add(presetEvent);
+        });
+
+		file.write(*JSONlib.convertToJSON(orbitPresets));
+        file.close;
 	}
 
-
 	startEQEffect {
-		dirt.set(\reverbWet,1);
+		dirt.set(\activeEq,1);
 	}
 
 	stopEQEffect {
-		dirt.set(\reverbWet,nil);
+		dirt.set(\activeEq,nil);
 	}
 
 	gui {
 		var window, v, composite, freqScope, orbitUIElements, masterFunc, meterResp, masterOutResp, loadPresetListener;// local machine
 		var equiView, setEQuiValues;
 		var activeOrbit = dirt.orbits[0];
-		var presetFile = 'Default.csv';
+		var presetFile = 'Default.json';
 		var orbitLevelIndicators = Array.new(dirt.orbits.size);
 		var panKnobs = Array.new(dirt.orbits.size);
 		var panNumBoxs = Array.new(dirt.orbits.size);
@@ -310,21 +250,7 @@ SuperDirtMixer {
 		};
 
 		setOrbitEQValues = {|orb, equiView|
-			orb.set(\loShelfFreq, equiView.value.loShelfFreq);
-			orb.set(\loShelfGain, equiView.value.loShelfGain);
-			orb.set(\loShelfRs, equiView.value.loShelfRs);
-			orb.set(\loPeakFreq, equiView.value.loPeakFreq);
-			orb.set(\loPeakGain, equiView.value.loPeakGain);
-			orb.set(\loPeakRq, equiView.value.loPeakRq);
-			orb.set(\midPeakFreq, equiView.value.midPeakFreq);
-			orb.set(\midPeakGain, equiView.value.midPeakGain);
-			orb.set(\midPeakRq, equiView.value.midPeakRq);
-			orb.set(\hiPeakFreq, equiView.value.hiPeakFreq);
-			orb.set(\hiPeakGain, equiView.value.hiPeakGain);
-			orb.set(\hiPeakRq, equiView.value.hiPeakRq);
-			orb.set(\hiShelfFreq, equiView.value.hiShelfFreq);
-			orb.set(\hiShelfGain, equiView.value.hiShelfGain);
-			orb.set(\hiShelfRs, equiView.value.hiShelfRs);
+			orb.set(*equiView.value.asArgsArray);
 		};
 
 		(0..(dirt.orbits.size - 1)).do({|item|
@@ -429,23 +355,7 @@ SuperDirtMixer {
 
 	    VLayout(
 			Button.new.string_("Reset Current EQ").action_({
-				equiView.value = EQuiParams.new(
-				loShelfFreq: 100,
-				loShelfGain: 0,
-				loShelfRs: 1,
-				loPeakFreq: 250,
-				loPeakGain: 0,
-				loPeakRq: 1,
-				midPeakFreq: 1000,
-				midPeakGain: 0,
-				midPeakRq: 1,
-				hiPeakFreq: 3500,
-				hiPeakGain: 0,
-				hiPeakRq: 1,
-				hiShelfFreq: 6000,
-				hiShelfGain: 0,
-				hiShelfRs: 1
-			);
+				equiView.value = EQuiParams.new();
 				equiView.target = activeOrbit.globalEffects[0].synth;
 			}),
 				Button.new.states_([["Mute All", Color.black, Color.white], ["Unmute All", Color.white, Color.blue]])

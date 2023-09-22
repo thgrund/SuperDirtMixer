@@ -2,7 +2,7 @@
 {
 var numChannels = ~dirt.numChannels;
 
-SynthDef("dirt_global_eq" ++ numChannels, { |out, dryBus, gate = 1|
+SynthDef("dirt_global_eq" ++ numChannels, { |out, dryBus, gate = 1, activeEq|
 		var sound;
 		var in = In.ar(dryBus, numChannels);
 		//ReplaceOut.ar(dryBus, in * (1 - gobalCutoffDry));

@@ -3,5 +3,5 @@
 	\summary:		"Mixer for SuperDirt to provide mixing presets fo  TidalCycles. This includes global gain, pan, reverb and eq settings for every orbit (indiviually).",
 	\author: 		"Thomas Grund",
 	\since: 		"2023",
-	\dependencies:  ["SuperDirt", "https://github.com/muellmusik/EQui"]
+	\dependencies:  ["SuperDirt", "https://github.com/muellmusik/EQui", "JSONlib"]
 )
