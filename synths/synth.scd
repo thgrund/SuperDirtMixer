@@ -17,12 +17,12 @@ SynthDef("dirt_global_eq" ++ numChannels, { |out, dryBus, gate = 1, activeEq|
 
 	}, [\ir]).add;
 
-SynthDef("dirt_master_mix" ++ numChannels, { |dryBus, effectBus, gate = 1, masterGain = 1, gainControlLag = 0.1|
+SynthDef("dirt_master_mix" ++ numChannels, { |dryBus, effectBus, gate = 1, masterGain = 1, gainControlLag = 0.1, globalMasterGain = 1|
 	var drySignal = In.ar(dryBus, numChannels);
 	var wetSignal = In.ar(effectBus, numChannels);
 	var env = EnvGen.kr(Env.asr, gate);
-	drySignal = drySignal * masterGain.lag(gainControlLag);
-	wetSignal = wetSignal * masterGain.lag(gainControlLag);
+	drySignal = (drySignal * masterGain.lag(gainControlLag)) * globalMasterGain;
+	wetSignal = (wetSignal * masterGain.lag(gainControlLag)) * globalMasterGain;
 	DirtPause.ar(drySignal + wetSignal, graceTime:4);
 	XOut.ar(dryBus, env, drySignal);
 	XOut.ar(effectBus, env, wetSignal);

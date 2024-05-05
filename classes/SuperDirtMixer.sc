@@ -12,6 +12,7 @@ SuperDirtMixer {
 	var <>orbitLabels;
 	var <>prMasterBus;
 	var <>receivePresetLoad;
+	var <>switchControlButtonEvent;
 	var reverbVariableName = \room;
 	var reverbNativeSize = 0.95;
 	var oscMasterLevelSender;
@@ -19,6 +20,7 @@ SuperDirtMixer {
 	var eqDefaultParentEvent;
 	var <orbitLabelViews;
 	var defaultParentEvent, defaultParentEventKeys, eqDefaultEventKeys;
+	var <>enabledCopyPasteFeature = false;
 
 	*new { |dirt|
 		^super.newCopyArgs(dirt).init
@@ -189,6 +191,7 @@ SuperDirtMixer {
 		var equiView, setEQuiValues;
 		var activeOrbit = dirt.orbits[0];
 		var presetFile = 'Default.json';
+		var copyPastePresetFile = 'Default.json';
 		var orbitLevelIndicators = Array.new(dirt.orbits.size);
 		var panKnobs = Array.new(dirt.orbits.size);
 		var panNumBoxs = Array.new(dirt.orbits.size);
@@ -196,16 +199,38 @@ SuperDirtMixer {
 		var gainNumBoxs = Array.new(dirt.orbits.size);
         var reverbKnobs = Array.new(dirt.orbits.size);
 		var eqButtons = List.new(dirt.orbits.size);
+		var midiControlButtons = Array.new(20);
+		var reshapedMidiControlButtons;
 		var orbitMixerViews = Array.new((dirt.orbits.size * 2) - 1);
 		var setOrbitEQValues;
 		var leftMasterIndicator = LevelIndicator.new.maxWidth_(12).drawsPeak_(true).warning_(0.9).critical_(1.0);
 	    var rightMasterIndicator = LevelIndicator.new.maxWidth_(12).drawsPeak_(true).warning_(0.9).critical_(1.0);
-		var panListener, gainListener, reverbListener;
+		var panListener, gainListener, reverbListener, midiControlButtonListener, tidalvstPresetListener;
 		var presetListView = ListView(window,Rect(10,10,30,30))
 		.items_(presetFiles)
         .action_({ arg sbs;
 				presetFile = presetListView.items[sbs.value] // .value returns the integer
 		});
+
+		var copyPasteListView = ListView(window,Rect(10,10,30,30))
+		.items_(presetFiles)
+        .action_({ arg sbs;
+			copyPastePresetFile = copyPasteListView.items[sbs.value]; // .value returns the integer
+		}).value_();
+
+		var defaultFileIndex;
+
+		20.do({|item|
+			midiControlButtons.add(Button.new.action_({ ~midiInternalOut.control(0, item + 100, 0)}).string_(item + 1).minHeight_(36).minWidth_(36));
+		});
+
+		reshapedMidiControlButtons = midiControlButtons.reshape(5,5);
+
+		presetFiles.do({|item,i| if (item.asSymbol == presetFile.asSymbol, {defaultFileIndex = i})});
+
+		presetListView.value = defaultFileIndex;
+		copyPasteListView.value = defaultFileIndex;
+
 
         dirt.startSendRMS;
 
@@ -215,7 +240,7 @@ SuperDirtMixer {
 		//composite.backColor = Color.rand;
 
 		composite.minHeight_(450);
-		composite.minWidth_(1400);
+		composite.minWidth_(1200);
 
 		freqScope = FreqScopeView(composite, composite.bounds);
 		freqScope.freqMode = 1;
@@ -274,16 +299,16 @@ SuperDirtMixer {
 		            orbit.set(\pan,a.value);
 	            });
 
-	        var gainSlider = Slider.new.maxWidth_(30).value_(orbit.get(\masterGain).linlin(0, 2, 0,1)).action_({|a|
-			        orbit.set(\masterGain,a.value.linlin(0, 1.0, 0,2));
-		            gainNumBox.value_(a.value.linlin(0, 1.0, 0,2));
+	        var gainSlider = Slider.new.maxWidth_(30).value_(orbit.get(\masterGain).linexp(0, 2, 1,2) - 1).action_({|a|
+			        orbit.set(\masterGain,a.value.linexp(0, 1.0, 1,3) - 1);
+		            gainNumBox.value_(a.value.linexp(0, 1.0, 1,3)-1);
 		        });
 
 	        var gainNumBox = NumberBox()
 	            .decimals_(2)
 	            .clipLo_(0).clipHi_(2).align_(\center)
 	            .scroll_step_(0.1).value_(orbit.get(\masterGain)).action_({|a|
-		            gainSlider.value_(a.value.linlin(0, 2, 0,1.0));
+		            gainSlider.value_(a.value.linexp(0, 2, 1,2.0) - 1);
 		            orbit.set(\masterGain,a.value);
 	            });
 
@@ -297,6 +322,26 @@ SuperDirtMixer {
 		            eqButtons.do({arg item; item.states_([["EQ", Color.black, Color.white]])});
 		            a.states_([["EQ", Color.white, Color.new255(238, 180, 34)]]);
 	            });
+
+			var copyPasteButton = Button.new.string_("Copy / Paste").action_({ |a|
+				var defaultEvents = JSONlib.convertToSC(File.readAllString(("/Users/mrreason/Development/SuperCollider/SuperDirtMixer/presets/" ++ copyPastePresetFile).resolveRelative, "r"));
+				var defaultEvent = defaultEvents.at(orbit.orbitIndex);
+
+				dirt.orbits[orbit.orbitIndex].set(*defaultEvent.asPairs);
+
+		        setEQuiValues.value(orbit, equiView);
+	            equiView.target = orbit.globalEffects[0].synth;
+
+				panKnobs[orbit.orbitIndex].value_(orbit.get(\pan));
+				panNumBoxs[orbit.orbitIndex].value_(orbit.get(\pan));
+				gainSliders[orbit.orbitIndex].value_((orbit.get(\masterGain) + 1).explin(1,3, 0,1));
+				gainNumBoxs[orbit.orbitIndex].value_(orbit.get(\masterGain));
+				reverbKnobs[orbit.orbitIndex].value_(orbit.get(reverbVariableName));
+
+			    setEQuiValues.value(activeOrbit, equiView);
+	            equiView.target = activeOrbit.globalEffects[0].synth;
+	         });
+
 
             var reverbKnob =  Knob().value_(orbit.get(reverbVariableName)).action_({|a|
 					orbit.set(reverbVariableName,a.value);
@@ -345,6 +390,8 @@ SuperDirtMixer {
 						if(view.value == 1) { this.tidalNetAddr.sendMsg("/solo",orbit.orbitIndex + 1) };
 					}),
 				),
+				10,
+				copyPasteButton
 			)
 		};
 
@@ -384,7 +431,7 @@ SuperDirtMixer {
 
 						panKnobs[item.orbitIndex].value_(item.get(\pan));
 						panNumBoxs[item.orbitIndex].value_(item.get(\pan));
-						gainSliders[item.orbitIndex].value_((item.get(\masterGain)) /2);
+						gainSliders[item.orbitIndex].value_((item.get(\masterGain) + 1).explin(1,3, 0,1));
 						gainNumBoxs[item.orbitIndex].value_(item.get(\masterGain));
 						reverbKnobs[item.orbitIndex].value_(item.get(reverbVariableName));
                     });
@@ -432,9 +479,17 @@ window.layout_(
 	   HLayout (
 	        composite,
 			VLayout(
+				StaticText.new.string_("MIDI Part Switch").minWidth_(100).maxHeight_(30).align_(\center),
+				HLayout(*reshapedMidiControlButtons[0]),
+				HLayout(*reshapedMidiControlButtons[1]),
+				HLayout(*reshapedMidiControlButtons[2]),
+				HLayout(*reshapedMidiControlButtons[3]),
+				200
+			),
+			VLayout(
 				if (this.prMasterBus.isNil.not, { StaticText.new.string_("Master").minWidth_(100).maxHeight_(30).align_(\center)}),
 				if (this.prMasterBus.isNil.not, { HLayout(leftMasterIndicator,rightMasterIndicator).spacing_(0)}),
-				200
+				if (this.enabledCopyPasteFeature == true, {copyPasteListView})
 			),
 			masterFunc.value(window)
 		)
@@ -499,7 +554,7 @@ window.layout_(
 
 						panKnobs[item.orbitIndex].value_(item.get(\pan));
 						panNumBoxs[item.orbitIndex].value_(item.get(\pan));
-						gainSliders[item.orbitIndex].value_((item.get(\masterGain)) /2);
+						gainSliders[item.orbitIndex].value_((item.get(\masterGain) + 1).explin(1,3, 0,1));
 						gainNumBoxs[item.orbitIndex].value_(item.get(\masterGain));
 						reverbKnobs[item.orbitIndex].value_(item.get(reverbVariableName));
                     });
@@ -526,7 +581,7 @@ window.layout_(
 				    var value     = msg[2];
 
 				    dirt.orbits.at(orbitIndex).set(\masterGain, value.linlin(0,2,0,2));
-					gainSliders[orbitIndex].value_((dirt.orbits.at(orbitIndex).get(\masterGain)) /2);
+					gainSliders[orbitIndex].value_((dirt.orbits.at(orbitIndex).get(\masterGain) + 1).explin(1,3, 0,1));
 					gainNumBoxs[orbitIndex].value_(dirt.orbits.at(orbitIndex).get(\masterGain));
 			}.defer;
 	    }, ("/SuperDirtMixer/masterGain"), recvPort: 57120).fix;
@@ -541,6 +596,40 @@ window.layout_(
 
 			}.defer;
 	    }, ("/SuperDirtMixer/reverb"), recvPort: 57120).fix;
+
+		tidalvstPresetListener = OSCFunc ({|msg|
+				{
+				    var fxName = msg[1];
+				    var presetPath = msg[2];
+
+					var combinedDictionary = Dictionary.new;
+				    var keys;
+
+				    combinedDictionary.putPairs(~tidalvst.instruments);
+				    combinedDictionary.putPairs(~tidalvst.fxs);
+
+				    keys = combinedDictionary.keys();
+
+				    if (keys.includes(fxName), {
+					    combinedDictionary.at(fxName.asSymbol).readProgram(presetPath);
+				    });
+			}.defer;
+	    }, ("/SuperDirtMixer/tidalvstPreset"), recvPort: 57120).fix;
+
+		midiControlButtonListener = OSCFunc ({|msg|
+				{
+				    var midiControlButtonIndex = msg[1];
+
+				    20.do({|item|
+					    if (item == midiControlButtonIndex,
+						     {midiControlButtons.at(item).states_([[item + 1, Color.white, Color.new255(238, 180, 34)]]) },
+						     {midiControlButtons.at(item).states_([[item + 1, Color.black, Color.white]]) }
+					    );
+				    });
+
+				    switchControlButtonEvent.value(midiControlButtonIndex);
+			}.defer;
+	    }, ("/SuperDirtMixer/midiControlButton"), recvPort: 57120).fix;
 
 		window.onClose_({ dirt.stopSendRMS;  meterResp.free; loadPresetListener.free; });
 		window.front;
