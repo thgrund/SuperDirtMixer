@@ -600,7 +600,7 @@ window.layout_(
 		tidalvstPresetListener = OSCFunc ({|msg|
 				{
 				    var fxName = msg[1];
-				    var presetPath = msg[2];
+				    var preset = msg[2];
 
 					var combinedDictionary = Dictionary.new;
 				    var keys;
@@ -611,7 +611,7 @@ window.layout_(
 				    keys = combinedDictionary.keys();
 
 				    if (keys.includes(fxName), {
-					    combinedDictionary.at(fxName.asSymbol).readProgram(presetPath);
+					    ~tidalvst.loadPreset(fxName, preset);
 				    });
 			}.defer;
 	    }, ("/SuperDirtMixer/tidalvstPreset"), recvPort: 57120).fix;
