@@ -13,6 +13,8 @@ SuperDirtMixer {
 	var <>prMasterBus;
 	var <>receivePresetLoad;
 	var <>switchControlButtonEvent;
+	var <>setEQValueFunc;
+	var <updateEQ;
 	var reverbVariableName = \room;
 	var reverbNativeSize = 0.95;
 	var oscMasterLevelSender;
@@ -220,6 +222,7 @@ SuperDirtMixer {
 
 		var defaultFileIndex;
 
+
 		20.do({|item|
 			midiControlButtons.add(Button.new.action_({ ~midiInternalOut.control(0, item + 100, 0)}).string_(item + 1).minHeight_(36).minWidth_(36));
 		});
@@ -272,6 +275,11 @@ SuperDirtMixer {
 				hiShelfGain: orb.get(\hiShelfGain),
 				hiShelfRs: orb.get(\hiShelfRs)
 			);
+		};
+
+		updateEQ = {
+			arg orbit;
+			setEQValueFunc.value(this, activeOrbit, orbit, setEQuiValues, equiView);
 		};
 
 		setOrbitEQValues = {|orb, equiView|
