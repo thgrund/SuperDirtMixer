@@ -189,7 +189,7 @@ SuperDirtMixer {
 	}
 
 	gui {
-		var window, v, composite, freqScope, orbitUIElements, masterFunc, meterResp, masterOutResp, loadPresetListener;// local machine
+		var window, v, equalizerComposite, freqScope, orbitUIElements, masterFunc, meterResp, masterOutResp, loadPresetListener;// local machine
 		var equiView, setEQuiValues;
 		var activeOrbit = dirt.orbits[0];
 		var presetFile = 'Default.json';
@@ -239,13 +239,13 @@ SuperDirtMixer {
 
 		this.loadPreset(presetFile);
 
-		composite = CompositeView.new;
+		equalizerComposite = CompositeView.new;
 		//composite.backColor = Color.rand;
 
-		composite.minHeight_(450);
-		composite.minWidth_(1200);
+		equalizerComposite.minHeight_(450);
+		equalizerComposite.minWidth_(1200);
 
-		freqScope = FreqScopeView(composite, composite.bounds);
+		freqScope = FreqScopeView(equalizerComposite, equalizerComposite.bounds);
 		freqScope.freqMode = 1;
 		freqScope.dbRange = 86;
 		freqScope.active_(true); // turn it on the first time;
@@ -255,7 +255,7 @@ SuperDirtMixer {
 		freqScope.fill = true;
         freqScope.inBus = dirt.orbits[0].dryBus;
 
-		equiView = EQui.new(composite, composite.bounds, dirt.orbits[0].globalEffects[0].synth);
+		equiView = EQui.new(equalizerComposite, equalizerComposite.bounds, dirt.orbits[0].globalEffects[0].synth);
 
 		setEQuiValues = {|orb, view|
 			view.value = EQuiParams.new(
@@ -485,19 +485,41 @@ window.layout_(
 			*orbitMixerViews
 	   ),
 	   HLayout (
-	        composite,
+	        equalizerComposite,
 			VLayout(
 				StaticText.new.string_("MIDI Part Switch").minWidth_(100).maxHeight_(30).align_(\center),
 				HLayout(*reshapedMidiControlButtons[0]),
 				HLayout(*reshapedMidiControlButtons[1]),
 				HLayout(*reshapedMidiControlButtons[2]),
 				HLayout(*reshapedMidiControlButtons[3]),
-				200
+				if (this.enabledCopyPasteFeature == true, {copyPasteListView})
 			),
 			VLayout(
 				if (this.prMasterBus.isNil.not, { StaticText.new.string_("Master").minWidth_(100).maxHeight_(30).align_(\center)}),
 				if (this.prMasterBus.isNil.not, { HLayout(leftMasterIndicator,rightMasterIndicator).spacing_(0)}),
-				if (this.enabledCopyPasteFeature == true, {copyPasteListView})
+				20,
+				StaticText.new.string_("Stage Master").minWidth_(100).maxHeight_(30).align_(\center),
+				10,
+				Button.new.string_("Live").action_({ |a| }),
+				10,
+				StaticText.new.string_("Comp Threshold").minWidth_(100).maxHeight_(30).align_(\center),
+
+				Knob().value_(0.8).action_({|a|
+				    a.postln;
+			    }),
+				StaticText.new.string_("-20dB").minWidth_(100).maxHeight_(30).align_(\center),
+				10,
+				StaticText.new.string_("Limiter Level").minWidth_(100).maxHeight_(30).align_(\center),
+				Knob().value_(0.4).action_({|a|
+				    a.postln;
+			    }),
+				StaticText.new.string_("0.4").minWidth_(100).maxHeight_(30).align_(\center),
+				10,
+				StaticText.new.string_("High End dB").minWidth_(100).maxHeight_(30).align_(\center),
+				Knob().value_(0.6).action_({|a|
+				    a.postln;
+			    }),
+				StaticText.new.string_("4dB").minWidth_(100).maxHeight_(30).align_(\center),
 			),
 			masterFunc.value(window)
 		)
