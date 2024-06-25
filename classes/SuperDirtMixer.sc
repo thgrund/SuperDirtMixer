@@ -1,8 +1,45 @@
 /*
+   guiElements: {
+        stageMaster: {
+            live: {button},
+            compThreshold: { title, knob, valueLabel },
+            limiterLevel: { title, knob, valueLabel },
+            highEndDB: { title, knob, valueLabel }
+        },
+        midiControlButtons: [
+            button
+        ],
+        orbits: [
+            {
+               pan: {knob, numberBox}
+               masterGain: {fader, numberBox}
+               reverb: knob,
+               mute: button,
+               solo: button,
+            }
+        ],
+        fxs: {
+            eq: {
+                equiView: equiView,
+                freqScope: freqScope
+            },
+            compressor: {
+                thresh: {title, fader, valueLabel},
+                ratio : {title, knob, valueLabel},
+                attack: {title, knob, valueLabel},
+                release: {title, knob, valueLabel}
+            }
+        }
+   }
+
+*/
+
+/*
 Optional TODOs
 - [] Dynamic amounts of level indicators per orbit based on the channel count
 - [] UI shall not be shown if EQui is not installed
 - [] Master EQ
+- [] Consider to add the SoftKneeCompression UGen directly to the mixer: https://github.com/supercollider-quarks/wslib/blob/master/wslib-classes/Extensions/UGens/SoftKneeCompressor.sc
 
 */
 SuperDirtMixer {
@@ -19,7 +56,6 @@ SuperDirtMixer {
 	var reverbNativeSize = 0.95;
 	var oscMasterLevelSender;
 	var presetFiles;
-	var eqDefaultParentEvent;
 	var <orbitLabelViews;
 	var defaultParentEvent, defaultParentEventKeys, eqDefaultEventKeys;
 	var <>enabledCopyPasteFeature = false;
@@ -27,6 +63,8 @@ SuperDirtMixer {
 	*new { |dirt|
 		^super.newCopyArgs(dirt).init
 	}
+
+	/* INITIALIZATION */
 
 	init {
 		try {
@@ -53,6 +91,7 @@ SuperDirtMixer {
 				\hiShelfFreq, \hiShelfGain, \hiShelfRs);
 
 			this.prLoadPresetFiles;
+
 			"SuperDirtMixer was successfully initialized".postln;
 		}
 	}
@@ -84,6 +123,29 @@ SuperDirtMixer {
 		defaultParentEvent.putPairs(defaultParentEventTemplate);
 	}
 
+	prLoadSynthDefs { |path|
+		var filePaths;
+		path = path ?? { "../synths".resolveRelative };
+		filePaths = pathMatch(standardizePath(path +/+ "*"));
+
+		filePaths.do { |filepath|
+		    if(filepath.splitext.last == "scd") {
+			    (dirt:dirt).use { filepath.load }; "loading synthdefs in %\n".postf(filepath)
+		    }
+		}
+	}
+
+	prLoadPresetFiles { |path|
+		var filePaths;
+		path = path ?? { presetPath.resolveRelative };
+		filePaths = pathMatch(standardizePath(path +/+ "*"));
+
+		presetFiles = filePaths.collect { |filepath|
+		   PathName.new(filepath).fileName;
+		};
+	}
+
+	/* PUBLIC FUNCTIONS */
 	setReverbNativeSize { |size|
 		if (reverbVariableName == \room, {
 			dirt.set(\size, size);
@@ -108,29 +170,6 @@ SuperDirtMixer {
 		reverbVariableName = variableName;
 	}
 
-
-	prLoadSynthDefs { |path|
-		var filePaths;
-		path = path ?? { "../synths".resolveRelative };
-		filePaths = pathMatch(standardizePath(path +/+ "*"));
-
-		filePaths.do { |filepath|
-		    if(filepath.splitext.last == "scd") {
-			    (dirt:dirt).use { filepath.load }; "loading synthdefs in %\n".postf(filepath)
-		    }
-		}
-	}
-
-	prLoadPresetFiles { |path|
-		var filePaths;
-		path = path ?? { presetPath.resolveRelative };
-		filePaths = pathMatch(standardizePath(path +/+ "*"));
-
-		presetFiles = filePaths.collect { |filepath|
-		   PathName.new(filepath).fileName;
-		};
-	}
-
 	enableMasterPeakRMS { |masterBus|
 		this.prMasterBus = masterBus;
 
@@ -145,6 +184,15 @@ SuperDirtMixer {
 		oscMasterLevelSender.free;
 	}
 
+	startEQEffect {
+		dirt.set(\activeEq,1);
+	}
+
+	stopEQEffect {
+		dirt.set(\activeEq,nil);
+	}
+
+	/* PRESET MANAGEMENT */
 	loadPreset { |presetFile|
 		var defaultEvents = JSONlib.convertToSC(File.readAllString((presetPath ++ presetFile).resolveRelative, "r"));
 
@@ -180,15 +228,9 @@ SuperDirtMixer {
         file.close;
 	}
 
-	startEQEffect {
-		dirt.set(\activeEq,1);
-	}
-
-	stopEQEffect {
-		dirt.set(\activeEq,nil);
-	}
-
+	/* GUI */
 	gui {
+		/* DECLARE GUI VARIABLES */
 		var window, v, equalizerComposite, freqScope, orbitUIElements, masterFunc, meterResp, masterOutResp, loadPresetListener;// local machine
 		var equiView, setEQuiValues;
 		var activeOrbit = dirt.orbits[0];
@@ -213,6 +255,7 @@ SuperDirtMixer {
         .action_({ arg sbs;
 				presetFile = presetListView.items[sbs.value] // .value returns the integer
 		});
+		var oscListener;
 
 		var copyPasteListView = ListView(window,Rect(10,10,30,30))
 		.items_(presetFiles)
@@ -222,7 +265,41 @@ SuperDirtMixer {
 
 		var defaultFileIndex;
 
+		var formaters = Dictionary.newFrom([
+			\toDecibels, {|value| "%dB".format(value.ampdb.round(1e-1))},
+			\toMilliseconds, {|value| "%ms".format(value.linlin(0,1,0,10).round(1e-2))},
+			\toFreqdB, {|value| "%dB".format(value.linlin(0,1,-24,24).round(1e-2))}
+		]);
 
+		var guiElements = Dictionary.new;
+
+		guiElements.put(\stageMaster, Dictionary.new);
+
+		guiElements.put(\orbits, Array.new(dirt.orbits.size));
+
+		// Live Button
+		guiElements.at(\stageMaster).put(\live, Dictionary.newFrom([\button, Button.new.string_("Live").action_({ |a| })]));
+
+
+		// compThreshold
+		this.knobWithValueLabelFactory( guiElements.at(\stageMaster)
+			, \compThreshold, "Comp Threshold", formaters[\toDecibels], 0.7);
+
+		this.knobWithValueLabelFactory( guiElements.at(\stageMaster)
+			, \limiterLevel, "Limiter Level",  formaters[\toMilliseconds], 1.0);
+
+		this.knobWithValueLabelFactory( guiElements.at(\stageMaster)
+			, \highEndDb, "High End dB",  formaters[\toFreqdB], 2/24 + 0.5);
+
+
+		/*stageMaster: {
+            live: {button},
+            compThreshold: { title, knob, valueLabel },
+            limiterLevel: { title, knob, staticText },
+            highEndDB: { knob, staticText }
+        },*/
+
+		/* INIT GUI COMPONENTS */
 		20.do({|item|
 			midiControlButtons.add(Button.new.action_({ ~midiInternalOut.control(0, item + 100, 0)}).string_(item + 1).minHeight_(36).minWidth_(36));
 		});
@@ -234,11 +311,11 @@ SuperDirtMixer {
 		presetListView.value = defaultFileIndex;
 		copyPasteListView.value = defaultFileIndex;
 
-
         dirt.startSendRMS;
 
 		this.loadPreset(presetFile);
 
+		/* DEFINE EQ GUI */
 		equalizerComposite = CompositeView.new;
 		//composite.backColor = Color.rand;
 
@@ -256,6 +333,33 @@ SuperDirtMixer {
         freqScope.inBus = dirt.orbits[0].dryBus;
 
 		equiView = EQui.new(equalizerComposite, equalizerComposite.bounds, dirt.orbits[0].globalEffects[0].synth);
+
+		guiElements.put(\fxs, Dictionary.newFrom([
+			\eq, Dictionary.newFrom([
+				\equiView, EQui.new(equalizerComposite, equalizerComposite.bounds, dirt.orbits[0].globalEffects[0].synth)
+				, \freqScope, freqScope
+				, \setEQuiValues, {|orb, view|
+					view.value = EQuiParams.new(
+						loShelfFreq: orb.get(\loShelfFreq),
+						loShelfGain: orb.get(\loShelfGain),
+						loShelfRs: orb.get(\loShelfRs),
+						loPeakFreq:  orb.get(\loPeakFreq),
+						loPeakGain: orb.get(\loPeakGain),
+						loPeakRq: orb.get(\loPeakRq),
+						midPeakFreq: orb.get(\midPeakFreq),
+						midPeakGain: orb.get(\midPeakGain),
+						midPeakRq: orb.get(\midPeakRq),
+						hiPeakFreq: orb.get(\hiPeakFreq),
+						hiPeakGain: orb.get(\hiPeakGain),
+						hiPeakRq: orb.get(\hiPeakRq),
+						hiShelfFreq: orb.get(\hiShelfFreq),
+						hiShelfGain: orb.get(\hiShelfGain),
+						hiShelfRs: orb.get(\hiShelfRs)
+					);
+				};
+			])
+		]));
+
 
 		setEQuiValues = {|orb, view|
 			view.value = EQuiParams.new(
@@ -293,6 +397,7 @@ SuperDirtMixer {
 
 		setEQuiValues.value(dirt.orbits[0], equiView);
 
+		/* DEFINE FADER UI */
 		orbitUIElements = { |window, text, orbit|
 			var panKnob = Knob().value_(orbit.get(\pan)).centered_(true).action_({|a|
 				    orbit.set(\pan,a.value);
@@ -357,6 +462,21 @@ SuperDirtMixer {
 
 			var orbitLabelView = StaticText.new.string_(text).minWidth_(100).align_(\center);
 
+			var orbitElements = Dictionary.newFrom([
+				\orbitLabel,  Dictionary.newFrom([\element, orbitLabelView])
+				, \pan, Dictionary.newFrom([\element, panKnob, \value, panNumBox])
+				, \masterGain, Dictionary.newFrom([\element, gainSlider, \value, gainNumBox ])
+				, \reverb, Dictionary.newFrom([\element, reverbKnob])
+				, \eq, Dictionary.newFrom([\element, eqButton])
+				, \preset, Dictionary.newFrom([\element, copyPasteButton])
+			]);
+			 /*
+               reverb: knob,
+               mute: button,
+               solo: button,*/
+
+			guiElements[\orbits].add(orbitElements);
+
 			panKnobs.add(panKnob);
 		    panNumBoxs.add(panNumBox);
 		    gainSliders.add(gainSlider);
@@ -403,7 +523,7 @@ SuperDirtMixer {
 			)
 		};
 
-
+	/* DEFINE PRESET UI */
     masterFunc = { |window|
 
         window.onClose_({ masterOutResp.free; }); // you must have this
@@ -437,11 +557,11 @@ SuperDirtMixer {
 		                setEQuiValues.value(item, equiView);
 	                    equiView.target = item.globalEffects[0].synth;
 
-						panKnobs[item.orbitIndex].value_(item.get(\pan));
-						panNumBoxs[item.orbitIndex].value_(item.get(\pan));
-						gainSliders[item.orbitIndex].value_((item.get(\masterGain) + 1).explin(1,3, 0,1));
-						gainNumBoxs[item.orbitIndex].value_(item.get(\masterGain));
-						reverbKnobs[item.orbitIndex].value_(item.get(reverbVariableName));
+						guiElements[\orbits][item.orbitIndex][\pan][\element].value_(item.get(\pan));
+						guiElements[\orbits][item.orbitIndex][\pan][\value].value_(item.get(\pan));
+						guiElements[\orbits][item.orbitIndex][\masterGain][\element].value_((item.get(\masterGain) + 1).explin(1,3, 0,1));
+						guiElements[\orbits][item.orbitIndex][\masterGain][\value].value_(item.get(\masterGain));
+						guiElements[\orbits][item.orbitIndex][\reverb][\element].value_(item.get(reverbVariableName));
                     });
 
 			        setEQuiValues.value(activeOrbit, equiView);
@@ -455,13 +575,13 @@ SuperDirtMixer {
 
 			        dirt.orbits.do({|item|
 		                setEQuiValues.value(item, equiView);
-	                    equiView.target = item.globalEffects[0].synth;
+						equiView.target = item.globalEffects[0].synth;
 
-						panKnobs[item.orbitIndex].value_(0.5);
-						panNumBoxs[item.orbitIndex].value_(0.5);
-						gainSliders[item.orbitIndex].value_(1/2);
-						gainNumBoxs[item.orbitIndex].value_(1.0);
-						reverbKnobs[item.orbitIndex].value_(0.0);
+						guiElements[\orbits][item.orbitIndex][\pan][\element].value_(0.5);
+						guiElements[\orbits][item.orbitIndex][\pan][\value].value_(0.5);
+						guiElements[\orbits][item.orbitIndex][\masterGain][\element].value_(1/2);
+						guiElements[\orbits][item.orbitIndex][\masterGain][\value].value_(1.0);
+						guiElements[\orbits][item.orbitIndex][\reverb][\element].value_(0.0);
                     });
 
 			        setEQuiValues.value(activeOrbit, equiView);
@@ -495,31 +615,25 @@ window.layout_(
 				if (this.enabledCopyPasteFeature == true, {copyPasteListView})
 			),
 			VLayout(
+				/* DEFINE MASTER UI : EXTRACT -> Stage master */
 				if (this.prMasterBus.isNil.not, { StaticText.new.string_("Master").minWidth_(100).maxHeight_(30).align_(\center)}),
 				if (this.prMasterBus.isNil.not, { HLayout(leftMasterIndicator,rightMasterIndicator).spacing_(0)}),
 				20,
 				StaticText.new.string_("Stage Master").minWidth_(100).maxHeight_(30).align_(\center),
 				10,
-				Button.new.string_("Live").action_({ |a| }),
+			    guiElements[\stageMaster][\live][\element],
 				10,
-				StaticText.new.string_("Comp Threshold").minWidth_(100).maxHeight_(30).align_(\center),
-
-				Knob().value_(0.8).action_({|a|
-				    a.postln;
-			    }),
-				StaticText.new.string_("-20dB").minWidth_(100).maxHeight_(30).align_(\center),
+				guiElements[\stageMaster][\compThreshold][\title],
+				guiElements[\stageMaster][\compThreshold][\element],
+				guiElements[\stageMaster][\compThreshold][\value],
 				10,
-				StaticText.new.string_("Limiter Level").minWidth_(100).maxHeight_(30).align_(\center),
-				Knob().value_(0.4).action_({|a|
-				    a.postln;
-			    }),
-				StaticText.new.string_("0.4").minWidth_(100).maxHeight_(30).align_(\center),
+				guiElements[\stageMaster][\limiterLevel][\title],
+				guiElements[\stageMaster][\limiterLevel][\element],
+				guiElements[\stageMaster][\limiterLevel][\value],
 				10,
-				StaticText.new.string_("High End dB").minWidth_(100).maxHeight_(30).align_(\center),
-				Knob().value_(0.6).action_({|a|
-				    a.postln;
-			    }),
-				StaticText.new.string_("4dB").minWidth_(100).maxHeight_(30).align_(\center),
+				guiElements[\stageMaster][\highEndDb][\title],
+				guiElements[\stageMaster][\highEndDb][\element],
+				guiElements[\stageMaster][\highEndDb][\value],
 			),
 			masterFunc.value(window)
 		)
@@ -528,141 +642,25 @@ window.layout_(
 
 		this.startEQEffect;
 
-		masterOutResp = OSCFunc( {|msg|
-				{
-					try {
-				        var rmsL = msg[4].ampdb.linlin(-80, 0, 0, 1);
-				        var peakL = msg[3].ampdb.linlin(-80, 0, 0, 1, \min);
-                        var rmsR = msg[6].ampdb.linlin(-80, 0, 0, 1);
-				        var peakR = msg[5].ampdb.linlin(-80, 0, 0, 1, \min);
+		oscListener = SuperDirtMixerOSCListener.new(guiElements, dirt.orbits);
 
-				        leftMasterIndicator.value = rmsL;
-				        leftMasterIndicator.peakLevel = peakL;
-						rightMasterIndicator.value = rmsR;
-				        rightMasterIndicator.peakLevel = peakR;
+		/* OSC LISTENERS */
+		oscListener.addMasterLevelOSCFunc(leftMasterIndicator, rightMasterIndicator);
+		oscListener.addMeterResponseOSCFunc(orbitLevelIndicators);
+		oscListener.addReverbListener(reverbVariableName);
+		oscListener.addPanListener();
+		oscListener.addGainListener();
+		oscListener.addTidalvstPresetListener();
 
-					} { |error|
-						if(error.isKindOf(PrimitiveFailedError).not) { error.throw }
-					};
-				}.defer;
-	    }, ("/MixerMasterOutLevels").asSymbol, ~dirt.server.addr).fix;
-
-		meterResp = OSCFunc( {|msg|
-				{
-					try {
-					    var indicators = orbitLevelIndicators[msg[2]];
-
-                        (0..(~dirt.numChannels - 1)).do({
-						    arg item;
-						    var baseIndex = ((item + 1) * 2) + 1;
-						    var rms = msg[baseIndex + 1].ampdb.linlin(-80, 0, 0, 1);
-				            var peak = msg[baseIndex].ampdb.linlin(-80, 0, 0, 1, \min);
-
-					        indicators[item].value = rms;
-				            indicators[item].peakLevel = peak;
-					    });
-
-					} { |error| };
-				}.defer;
-			}, ("/rms")).fix;
-
-		loadPresetListener = OSCFunc ({|msg|
-				{
-				    var receivedPresetFile = msg[1];
-				    var presetFilesAsSymbol = presetFiles.collect({|item| item.asSymbol});
-				    presetFile = receivedPresetFile;
-
-				    this.loadPreset(receivedPresetFile);
-
-				    presetListView.value = presetFilesAsSymbol.indexOf(receivedPresetFile.asSymbol);
-
-					receivePresetLoad.value(receivedPresetFile);
-
-			        dirt.orbits.do({|item|
-		                setEQuiValues.value(item, equiView);
-	                    equiView.target = item.globalEffects[0].synth;
-
-						panKnobs[item.orbitIndex].value_(item.get(\pan));
-						panNumBoxs[item.orbitIndex].value_(item.get(\pan));
-						gainSliders[item.orbitIndex].value_((item.get(\masterGain) + 1).explin(1,3, 0,1));
-						gainNumBoxs[item.orbitIndex].value_(item.get(\masterGain));
-						reverbKnobs[item.orbitIndex].value_(item.get(reverbVariableName));
-                    });
-
-			        setEQuiValues.value(activeOrbit, equiView);
-	                equiView.target = activeOrbit.globalEffects[0].synth;
-			}.defer;
-	    }, ("/SuperDirtMixer/loadPreset"), recvPort: 57120).fix;
-
-		panListener = OSCFunc ({|msg|
-				{
-				    var orbitIndex = msg[1];
-				    var value     = msg[2];
-
-				    dirt.orbits.at(orbitIndex).set(\pan, value.linlin(0,1,0,1.0));
-				    panKnobs[orbitIndex].value_(dirt.orbits.at(orbitIndex).get(\pan));
-					panNumBoxs[orbitIndex].value_(dirt.orbits.at(orbitIndex).get(\pan));
-			}.defer;
-	    }, ("/SuperDirtMixer/pan"), recvPort: 57120).fix;
-
-		gainListener = OSCFunc ({|msg|
-				{
-				    var orbitIndex = msg[1];
-				    var value     = msg[2];
-
-				    dirt.orbits.at(orbitIndex).set(\masterGain, value.linlin(0,2,0,2));
-					gainSliders[orbitIndex].value_((dirt.orbits.at(orbitIndex).get(\masterGain) + 1).explin(1,3, 0,1));
-					gainNumBoxs[orbitIndex].value_(dirt.orbits.at(orbitIndex).get(\masterGain));
-			}.defer;
-	    }, ("/SuperDirtMixer/masterGain"), recvPort: 57120).fix;
-
-		reverbListener = OSCFunc ({|msg|
-				{
-				    var orbitIndex = msg[1];
-				    var value     = msg[2];
-
-				    dirt.orbits.at(orbitIndex).set(reverbVariableName, value.linlin(0,1,0,1.0));
-					reverbKnobs[orbitIndex].value_(dirt.orbits.at(orbitIndex).get(reverbVariableName));
-
-			}.defer;
-	    }, ("/SuperDirtMixer/reverb"), recvPort: 57120).fix;
-
-		tidalvstPresetListener = OSCFunc ({|msg|
-				{
-				    var fxName = msg[1];
-				    var preset = msg[2];
-
-					var combinedDictionary = Dictionary.new;
-				    var keys;
-
-				    combinedDictionary.putPairs(~tidalvst.instruments);
-				    combinedDictionary.putPairs(~tidalvst.fxs);
-
-				    keys = combinedDictionary.keys();
-
-				    if (keys.includes(fxName), {
-					    ~tidalvst.loadPreset(fxName, preset);
-				    });
-			}.defer;
-	    }, ("/SuperDirtMixer/tidalvstPreset"), recvPort: 57120).fix;
-
-		midiControlButtonListener = OSCFunc ({|msg|
-				{
-				    var midiControlButtonIndex = msg[1];
-
-				    20.do({|item|
-					    if (item == midiControlButtonIndex,
-						     {midiControlButtons.at(item).states_([[item + 1, Color.white, Color.new255(238, 180, 34)]]) },
-						     {midiControlButtons.at(item).states_([[item + 1, Color.black, Color.white]]) }
-					    );
-				    });
-
-				    switchControlButtonEvent.value(midiControlButtonIndex);
-			}.defer;
-	    }, ("/SuperDirtMixer/midiControlButton"), recvPort: 57120).fix;
+		/* TODO
+		oscListener.addLoadPresetListener
+		oscListener.addTidalvstPresetListener
+		oscListener.addMidiControlButtonListener*/
 
 		window.onClose_({ dirt.stopSendRMS;  meterResp.free; loadPresetListener.free; });
 		window.front;
+
+		JSONlib.convertToJSON(guiElements).postln;
 	}
 
 }
