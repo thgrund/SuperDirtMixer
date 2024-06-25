@@ -1,4 +1,4 @@
-+ SuperDirtMixer {
+UIKnobFactories {
 	// Define the formaters as a class variable
 
 		/* INITALIZE GUI FACTORIES */
@@ -12,8 +12,8 @@
 
 		    parent[key].put(\element,
 			    Knob().value_(default).action_({|a|
-				    parent[key][\valueLabel].string_(
-					formater.value(a.value);
+				    parent[key][\value].string_(
+					    formater.value(a.value);
 				    )
 		        })
 		    );

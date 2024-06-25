@@ -229,7 +229,7 @@ SuperDirtMixer {
 	/* GUI */
 	gui {
 		/* DECLARE GUI VARIABLES */
-		var window, v, equalizerComposite, freqScope, orbitUIElements, masterFunc, meterResp, masterOutResp, loadPresetListener;// local machine
+		var window, v, equalizerComposite, freqScope, orbitUIElements, utilityElements, meterResp, masterOutResp, loadPresetListener;// local machine
 		var setEQuiValues;
 		var activeOrbit = dirt.orbits[0];
 		var presetFile = 'Default.json';
@@ -248,12 +248,8 @@ SuperDirtMixer {
 				presetFile = presetListView.items[sbs.value] // .value returns the integer
 		});
 		var oscListener;
+		var mixerUI = MixerUI.new;
 
-		var copyPasteListView = ListView(window,Rect(10,10,30,30))
-		.items_(presetFiles)
-        .action_({ arg sbs;
-			copyPastePresetFile = copyPasteListView.items[sbs.value]; // .value returns the integer
-		}).value_();
 
 		var defaultFileIndex;
 
@@ -263,6 +259,8 @@ SuperDirtMixer {
 			\toFreqdB, {|value| "%dB".format(value.linlin(0,1,-24,24).round(1e-2))}
 		]);
 
+		var uiKnobFactories = UIKnobFactories();
+
 		var guiElements = Dictionary.new;
 
 		guiElements.put(\stageMaster, Dictionary.new);
@@ -271,17 +269,15 @@ SuperDirtMixer {
 
 		// Live Button
 		guiElements.at(\stageMaster).put(\live, Dictionary.newFrom([\element, Button.new.string_("Live").action_({ |a| })]));
-
-		// compThreshold
-		this.knobWithValueLabelFactory( guiElements.at(\stageMaster)
+		uiKnobFactories.knobWithValueLabelFactory( guiElements.at(\stageMaster)
 			, \compThreshold, "Comp Threshold", formaters[\toDecibels], 0.7);
-
-		this.knobWithValueLabelFactory( guiElements.at(\stageMaster)
+		uiKnobFactories.knobWithValueLabelFactory( guiElements.at(\stageMaster)
 			, \limiterLevel, "Limiter Level",  formaters[\toMilliseconds], 1.0);
-
-		this.knobWithValueLabelFactory( guiElements.at(\stageMaster)
+		uiKnobFactories.knobWithValueLabelFactory( guiElements.at(\stageMaster)
 			, \highEndDb, "High End dB",  formaters[\toFreqdB], 2/24 + 0.5);
 
+
+		mixerUI.activeOrbit = activeOrbit;
 
 		/* INIT GUI COMPONENTS */
 		20.do({|item|
@@ -293,7 +289,6 @@ SuperDirtMixer {
 		presetFiles.do({|item,i| if (item.asSymbol == presetFile.asSymbol, {defaultFileIndex = i})});
 
 		presetListView.value = defaultFileIndex;
-		copyPasteListView.value = defaultFileIndex;
 
         dirt.startSendRMS;
 
@@ -360,125 +355,9 @@ SuperDirtMixer {
 
 		setEQuiValues.value(dirt.orbits[0], guiElements[\fxs][\eq][\equiView]);
 
-		/* DEFINE FADER UI */
-		orbitUIElements = { |window, text, orbit|
-			var equiView = guiElements[\fxs][\eq][\equiView];
-			var orbitElements = guiElements[\orbits][orbit.orbitIndex];
-
-			var panKnob = Knob().value_(orbit.get(\pan)).centered_(true).action_({|a|
-				    orbit.set(\pan,a.value);
-				    panNumBox.value_(a.value);
-			    });
-
-			var panNumBox = NumberBox()
-			   .decimals_(2)
-	            .clipLo_(0).clipHi_(1).align_(\center)
-	            .scroll_step_(0.1).value_(orbit.get(\pan)).action_({|a|
-		            panKnob.value_(a.value);
-		            orbit.set(\pan,a.value);
-	            });
-
-	        var gainSlider = Slider.new.maxWidth_(30).value_(orbit.get(\masterGain).linexp(0, 2, 1,2) - 1).action_({|a|
-			        orbit.set(\masterGain,a.value.linexp(0, 1.0, 1,3) - 1);
-		            gainNumBox.value_(a.value.linexp(0, 1.0, 1,3)-1);
-		        });
-
-	        var gainNumBox = NumberBox()
-	            .decimals_(2)
-	            .clipLo_(0).clipHi_(2).align_(\center)
-	            .scroll_step_(0.1).value_(orbit.get(\masterGain)).action_({|a|
-		            gainSlider.value_(a.value.linexp(0, 2, 1,2.0) - 1);
-		            orbit.set(\masterGain,a.value);
-	            });
-
-	        var eqButton = Button.new.string_("EQ").action_({ |a|
-				    // Save EQ values before switching to the new eq orbit
-				    setOrbitEQValues.value(activeOrbit, equiView);
-			        activeOrbit = orbit;
-                    setEQuiValues.value(orbit, equiView);
-			        equiView.target = orbit.globalEffects[0].synth;
-			        freqScope.inBus = orbit.dryBus;
-				    guiElements[\orbits].do({arg item; item[\eq][\element].states_([["EQ", Color.black, Color.white]])});
-		            a.states_([["EQ", Color.white, Color.new255(238, 180, 34)]]);
-	            });
-
-			var copyPasteButton = Button.new.string_("Copy / Paste").action_({ |a|
-				var defaultEvents = JSONlib.convertToSC(File.readAllString(("/Users/mrreason/Development/SuperCollider/SuperDirtMixer/presets/" ++ copyPastePresetFile).resolveRelative, "r"));
-				var defaultEvent = defaultEvents.at(orbit.orbitIndex);
-
-				dirt.orbits[orbit.orbitIndex].set(*defaultEvent.asPairs);
-
-		        setEQuiValues.value(orbit, equiView);
-	            equiView.target = orbit.globalEffects[0].synth;
-
-				orbitElements[\pan][\element].value_(orbit.get(\pan));
-				orbitElements[\pan][\value].value_(orbit.get(\pan));
-				orbitElements[\masterGain][\element].value_((orbit.get(\masterGain) + 1).explin(1,3, 0,1));
-				orbitElements[\masterGain][\value].value_(orbit.get(\masterGain));
-				orbitElements[\reverb][\element].value_(orbit.get(reverbVariableName));
-
-			    setEQuiValues.value(activeOrbit, equiView);
-	            equiView.target = activeOrbit.globalEffects[0].synth;
-	         });
-
-
-            var reverbKnob =  Knob().value_(orbit.get(reverbVariableName)).action_({|a|
-					orbit.set(reverbVariableName,a.value);
-				});
-
-			var orbitLabelView = StaticText.new.string_(text).minWidth_(100).align_(\center);
-
-			var newOrbitElements = Dictionary.newFrom([
-				\orbitLabel,  Dictionary.newFrom([\element, orbitLabelView])
-				, \pan, Dictionary.newFrom([\element, panKnob, \value, panNumBox])
-				, \masterGain, Dictionary.newFrom([\element, gainSlider, \value, gainNumBox ])
-				, \reverb, Dictionary.newFrom([\element, reverbKnob])
-				, \eq, Dictionary.newFrom([\element, eqButton])
-				, \preset, Dictionary.newFrom([\element, copyPasteButton])
-			]);
-
-			guiElements[\orbits].add(newOrbitElements);
-
-			orbitLevelIndicators.add(Array.fill(~dirt.numChannels, {LevelIndicator.new.maxWidth_(12).drawsPeak_(true).warning_(0.9).critical_(1.0)}));
-
-			if (orbit == activeOrbit,
-				{eqButton.states_([["EQ", Color.white, Color.new255(238, 180, 34)]])},
-				{eqButton.states_([["EQ", Color.black, Color.white]])});
-
-			VLayout(
-				orbitLabelView,
-				panKnob,
-				panNumBox,
-				HLayout(
-					orbitLevelIndicators[orbit.orbitIndex][0],
-					orbitLevelIndicators[orbit.orbitIndex][1],
-					gainSlider
-				).spacing_(0),
-				gainNumBox,
-				StaticText.new.string_("FX - Reverb").minWidth_(100).align_(\center),
-				reverbKnob,
-				eqButton,
-				HLayout(
-					Button.new.maxWidth_(25)
-					.states_([["M", Color.black, Color.white], ["M", Color.white, Color.blue]])
-					.action_({
-						|view|
-						if(view.value == 0) { this.tidalNetAddr.sendMsg("/unmute",orbit.orbitIndex + 1) };
-						if(view.value == 1) { this.tidalNetAddr.sendMsg("/mute",orbit.orbitIndex + 1) };
-					}),
-					Button.new.maxWidth_(25).states_([["S", Color.black, Color.white], ["S", Color.white, Color.red]]).action_({
-						|view|
-						if(view.value == 0) { this.tidalNetAddr.sendMsg("/unsolo",orbit.orbitIndex + 1) };
-						if(view.value == 1) { this.tidalNetAddr.sendMsg("/solo",orbit.orbitIndex + 1) };
-					}),
-				),
-				10,
-				copyPasteButton
-			)
-		};
 
 	/* DEFINE PRESET UI */
-    masterFunc = { |window|
+    utilityElements = { |window|
 		var equiView = guiElements[\fxs][\eq][\equiView];
 
         window.onClose_({ masterOutResp.free; }); // you must have this
@@ -545,12 +424,30 @@ SuperDirtMixer {
          )
     };
 
-		(0..(dirt.orbits.size - 1)).do({
+		/*(0..(dirt.orbits.size - 1)).do({
 			arg item;
 			var baseIndex = item * 2;
 			orbitMixerViews.insert(baseIndex, orbitUIElements.value(window, orbitLabels[item], dirt.orbits[item]));
 			if ( (item == (dirt.orbits.size - 1)).not, {orbitMixerViews.insert(baseIndex + 1, 15)});
+		});*/
+
+
+		(0..(dirt.orbits.size - 1)).do({
+			arg item;
+			var baseIndex = item * 2;
+			orbitMixerViews.insert(baseIndex,
+				mixerUI.createMixerUIComponent(
+					orbitLabels[item]
+					, dirt.orbits[item]
+					, guiElements
+					, setOrbitEQValues
+					, this.tidalNetAddr
+					, reverbVariableName
+					, orbitLevelIndicators
+			));
+			if ( (item == (dirt.orbits.size - 1)).not, {orbitMixerViews.insert(baseIndex + 1, 15)});
 		});
+
 
 // Create a window
 window = Window.new("Mixer", Rect(0,0,300,1000), scroll: true);
@@ -567,30 +464,10 @@ window.layout_(
 				HLayout(*reshapedMidiControlButtons[1]),
 				HLayout(*reshapedMidiControlButtons[2]),
 				HLayout(*reshapedMidiControlButtons[3]),
-				if (this.enabledCopyPasteFeature == true, {copyPasteListView})
+				300
 			),
-			VLayout(
-				/* DEFINE MASTER UI : EXTRACT -> Stage master */
-				if (this.prMasterBus.isNil.not, { StaticText.new.string_("Master").minWidth_(100).maxHeight_(30).align_(\center)}),
-				if (this.prMasterBus.isNil.not, { HLayout(leftMasterIndicator,rightMasterIndicator).spacing_(0)}),
-				20,
-				StaticText.new.string_("Stage Master").minWidth_(100).maxHeight_(30).align_(\center),
-				10,
-			    guiElements[\stageMaster][\live][\element],
-				10,
-				guiElements[\stageMaster][\compThreshold][\title],
-				guiElements[\stageMaster][\compThreshold][\element],
-				guiElements[\stageMaster][\compThreshold][\value],
-				10,
-				guiElements[\stageMaster][\limiterLevel][\title],
-				guiElements[\stageMaster][\limiterLevel][\element],
-				guiElements[\stageMaster][\limiterLevel][\value],
-				10,
-				guiElements[\stageMaster][\highEndDb][\title],
-				guiElements[\stageMaster][\highEndDb][\element],
-				guiElements[\stageMaster][\highEndDb][\value],
-			),
-			masterFunc.value(window)
+			MasterUI.createMasterUIComponent(guiElements[\stageMaster], this.prMasterBus, leftMasterIndicator, rightMasterIndicator),
+			utilityElements.value(window)
 		)
 		)
 	  );
