@@ -56,7 +56,6 @@ SuperDirtMixer {
 	var reverbNativeSize = 0.95;
 	var oscMasterLevelSender;
 	var presetFiles;
-	var <orbitLabelViews;
 	var defaultParentEvent, defaultParentEventKeys, eqDefaultEventKeys;
 	var <>enabledCopyPasteFeature = false;
 
@@ -81,7 +80,6 @@ SuperDirtMixer {
 			this.initDefaultParentEvents;
 
 			orbitLabels = Array.fill(dirt.orbits.size, {arg i; "d" ++ (i+1); });
-			orbitLabelViews = Array.new(dirt.orbits.size);
 
 			eqDefaultEventKeys = Array.with(
 				\loShelfFreq, \loShelfGain, \loShelfRs,
@@ -232,17 +230,11 @@ SuperDirtMixer {
 	gui {
 		/* DECLARE GUI VARIABLES */
 		var window, v, equalizerComposite, freqScope, orbitUIElements, masterFunc, meterResp, masterOutResp, loadPresetListener;// local machine
-		var equiView, setEQuiValues;
+		var setEQuiValues;
 		var activeOrbit = dirt.orbits[0];
 		var presetFile = 'Default.json';
 		var copyPastePresetFile = 'Default.json';
 		var orbitLevelIndicators = Array.new(dirt.orbits.size);
-		var panKnobs = Array.new(dirt.orbits.size);
-		var panNumBoxs = Array.new(dirt.orbits.size);
-		var gainSliders = Array.new(dirt.orbits.size);
-		var gainNumBoxs = Array.new(dirt.orbits.size);
-        var reverbKnobs = Array.new(dirt.orbits.size);
-		var eqButtons = List.new(dirt.orbits.size);
 		var midiControlButtons = Array.new(20);
 		var reshapedMidiControlButtons;
 		var orbitMixerViews = Array.new((dirt.orbits.size * 2) - 1);
@@ -278,8 +270,7 @@ SuperDirtMixer {
 		guiElements.put(\orbits, Array.new(dirt.orbits.size));
 
 		// Live Button
-		guiElements.at(\stageMaster).put(\live, Dictionary.newFrom([\button, Button.new.string_("Live").action_({ |a| })]));
-
+		guiElements.at(\stageMaster).put(\live, Dictionary.newFrom([\element, Button.new.string_("Live").action_({ |a| })]));
 
 		// compThreshold
 		this.knobWithValueLabelFactory( guiElements.at(\stageMaster)
@@ -291,13 +282,6 @@ SuperDirtMixer {
 		this.knobWithValueLabelFactory( guiElements.at(\stageMaster)
 			, \highEndDb, "High End dB",  formaters[\toFreqdB], 2/24 + 0.5);
 
-
-		/*stageMaster: {
-            live: {button},
-            compThreshold: { title, knob, valueLabel },
-            limiterLevel: { title, knob, staticText },
-            highEndDB: { knob, staticText }
-        },*/
 
 		/* INIT GUI COMPONENTS */
 		20.do({|item|
@@ -332,35 +316,6 @@ SuperDirtMixer {
 		freqScope.fill = true;
         freqScope.inBus = dirt.orbits[0].dryBus;
 
-		equiView = EQui.new(equalizerComposite, equalizerComposite.bounds, dirt.orbits[0].globalEffects[0].synth);
-
-		guiElements.put(\fxs, Dictionary.newFrom([
-			\eq, Dictionary.newFrom([
-				\equiView, EQui.new(equalizerComposite, equalizerComposite.bounds, dirt.orbits[0].globalEffects[0].synth)
-				, \freqScope, freqScope
-				, \setEQuiValues, {|orb, view|
-					view.value = EQuiParams.new(
-						loShelfFreq: orb.get(\loShelfFreq),
-						loShelfGain: orb.get(\loShelfGain),
-						loShelfRs: orb.get(\loShelfRs),
-						loPeakFreq:  orb.get(\loPeakFreq),
-						loPeakGain: orb.get(\loPeakGain),
-						loPeakRq: orb.get(\loPeakRq),
-						midPeakFreq: orb.get(\midPeakFreq),
-						midPeakGain: orb.get(\midPeakGain),
-						midPeakRq: orb.get(\midPeakRq),
-						hiPeakFreq: orb.get(\hiPeakFreq),
-						hiPeakGain: orb.get(\hiPeakGain),
-						hiPeakRq: orb.get(\hiPeakRq),
-						hiShelfFreq: orb.get(\hiShelfFreq),
-						hiShelfGain: orb.get(\hiShelfGain),
-						hiShelfRs: orb.get(\hiShelfRs)
-					);
-				};
-			])
-		]));
-
-
 		setEQuiValues = {|orb, view|
 			view.value = EQuiParams.new(
 				loShelfFreq: orb.get(\loShelfFreq),
@@ -381,9 +336,17 @@ SuperDirtMixer {
 			);
 		};
 
+		guiElements.put(\fxs, Dictionary.newFrom([
+			\eq, Dictionary.newFrom([
+				\equiView, EQui.new(equalizerComposite, equalizerComposite.bounds, dirt.orbits[0].globalEffects[0].synth)
+				, \freqScope, freqScope
+				, \setEQuiValues, setEQuiValues
+			])
+		]));
+
 		updateEQ = {
 			arg orbit;
-			setEQValueFunc.value(this, activeOrbit, orbit, setEQuiValues, equiView);
+			setEQValueFunc.value(this, activeOrbit, orbit, setEQuiValues, guiElements[\fxs][\eq][\equiView]);
 		};
 
 		setOrbitEQValues = {|orb, equiView|
@@ -391,14 +354,17 @@ SuperDirtMixer {
 		};
 
 		(0..(dirt.orbits.size - 1)).do({|item|
-			setEQuiValues.value(dirt.orbits[item], equiView);
-			equiView.target = dirt.orbits[item].globalEffects[0].synth;
+			setEQuiValues.value(dirt.orbits[item], guiElements[\fxs][\eq][\equiView]);
+			guiElements[\fxs][\eq][\equiView].target = dirt.orbits[item].globalEffects[0].synth;
 		});
 
-		setEQuiValues.value(dirt.orbits[0], equiView);
+		setEQuiValues.value(dirt.orbits[0], guiElements[\fxs][\eq][\equiView]);
 
 		/* DEFINE FADER UI */
 		orbitUIElements = { |window, text, orbit|
+			var equiView = guiElements[\fxs][\eq][\equiView];
+			var orbitElements = guiElements[\orbits][orbit.orbitIndex];
+
 			var panKnob = Knob().value_(orbit.get(\pan)).centered_(true).action_({|a|
 				    orbit.set(\pan,a.value);
 				    panNumBox.value_(a.value);
@@ -432,7 +398,7 @@ SuperDirtMixer {
                     setEQuiValues.value(orbit, equiView);
 			        equiView.target = orbit.globalEffects[0].synth;
 			        freqScope.inBus = orbit.dryBus;
-		            eqButtons.do({arg item; item.states_([["EQ", Color.black, Color.white]])});
+				    guiElements[\orbits].do({arg item; item[\eq][\element].states_([["EQ", Color.black, Color.white]])});
 		            a.states_([["EQ", Color.white, Color.new255(238, 180, 34)]]);
 	            });
 
@@ -445,11 +411,11 @@ SuperDirtMixer {
 		        setEQuiValues.value(orbit, equiView);
 	            equiView.target = orbit.globalEffects[0].synth;
 
-				panKnobs[orbit.orbitIndex].value_(orbit.get(\pan));
-				panNumBoxs[orbit.orbitIndex].value_(orbit.get(\pan));
-				gainSliders[orbit.orbitIndex].value_((orbit.get(\masterGain) + 1).explin(1,3, 0,1));
-				gainNumBoxs[orbit.orbitIndex].value_(orbit.get(\masterGain));
-				reverbKnobs[orbit.orbitIndex].value_(orbit.get(reverbVariableName));
+				orbitElements[\pan][\element].value_(orbit.get(\pan));
+				orbitElements[\pan][\value].value_(orbit.get(\pan));
+				orbitElements[\masterGain][\element].value_((orbit.get(\masterGain) + 1).explin(1,3, 0,1));
+				orbitElements[\masterGain][\value].value_(orbit.get(\masterGain));
+				orbitElements[\reverb][\element].value_(orbit.get(reverbVariableName));
 
 			    setEQuiValues.value(activeOrbit, equiView);
 	            equiView.target = activeOrbit.globalEffects[0].synth;
@@ -462,7 +428,7 @@ SuperDirtMixer {
 
 			var orbitLabelView = StaticText.new.string_(text).minWidth_(100).align_(\center);
 
-			var orbitElements = Dictionary.newFrom([
+			var newOrbitElements = Dictionary.newFrom([
 				\orbitLabel,  Dictionary.newFrom([\element, orbitLabelView])
 				, \pan, Dictionary.newFrom([\element, panKnob, \value, panNumBox])
 				, \masterGain, Dictionary.newFrom([\element, gainSlider, \value, gainNumBox ])
@@ -470,20 +436,8 @@ SuperDirtMixer {
 				, \eq, Dictionary.newFrom([\element, eqButton])
 				, \preset, Dictionary.newFrom([\element, copyPasteButton])
 			]);
-			 /*
-               reverb: knob,
-               mute: button,
-               solo: button,*/
 
-			guiElements[\orbits].add(orbitElements);
-
-			panKnobs.add(panKnob);
-		    panNumBoxs.add(panNumBox);
-		    gainSliders.add(gainSlider);
-		    gainNumBoxs.add(gainNumBox);
-            reverbKnobs.add(reverbKnob);
-			eqButtons.add(eqButton);
-			orbitLabelViews.add(orbitLabelView);
+			guiElements[\orbits].add(newOrbitElements);
 
 			orbitLevelIndicators.add(Array.fill(~dirt.numChannels, {LevelIndicator.new.maxWidth_(12).drawsPeak_(true).warning_(0.9).critical_(1.0)}));
 
@@ -525,6 +479,7 @@ SuperDirtMixer {
 
 	/* DEFINE PRESET UI */
     masterFunc = { |window|
+		var equiView = guiElements[\fxs][\eq][\equiView];
 
         window.onClose_({ masterOutResp.free; }); // you must have this
 
