@@ -1,14 +1,17 @@
 SuperDirtMixerOSCListener {
-	var orbitsElements, orbits, fxs;
+	var orbitsElements, orbits, fxs, activeOrbit;
+	var loadPreset;
 
-	*new { | initGuiElements, initOrbits|
-        ^super.new.init(initGuiElements, initOrbits)
+	*new { | initGuiElements, initOrbits, initActiveOrbit, initLoadPreset|
+        ^super.new.init(initGuiElements, initOrbits, initActiveOrbit, initLoadPreset)
     }
 
-    init { |initGuiElements, initOrbits|
-       orbitsElements = initGuiElements[\orbits];
+    init { |initGuiElements, initOrbits, initActiveOrbit, initLoadPreset|
+        orbitsElements = initGuiElements[\orbits];
 		orbits = initOrbits;
 		fxs = initGuiElements[\fxs];
+		activeOrbit = initActiveOrbit;
+		loadPreset = initLoadPreset;
     }
 
 	addMasterLevelOSCFunc { |leftIndicator, rightIndicator|
@@ -112,39 +115,36 @@ SuperDirtMixerOSCListener {
 	    }, ("/SuperDirtMixer/tidalvstPreset"), recvPort: 57120).fix;
 	}
 
-	/*
-	addLoadPresetListener { OSCFunc ({|msg|
+	addLoadPresetListener { |presetListView, reverbVariableName, presetFiles|
+		OSCFunc ({|msg|
 			{
 				 var receivedPresetFile = msg[1];
 				 var presetFilesAsSymbol = presetFiles.collect({|item| item.asSymbol});
-				 presetFile = receivedPresetFile;
+				 var presetFile = receivedPresetFile;
 
-				    this.loadPreset(receivedPresetFile);
+				    loadPreset.value(receivedPresetFile);
 
 				    presetListView.value = presetFilesAsSymbol.indexOf(receivedPresetFile.asSymbol);
 
-					receivePresetLoad.value(receivedPresetFile);
+			        orbits.do({|item|
+		                fxs[\eq][\setEQuiValues].value(item, fxs[\eq][\equiView]);
+	                    fxs[\eq][\equiView].target = item.globalEffects[0].synth;
 
-			        dirt.orbits.do({|item|
-		                setEQuiValues.value(item, equiView);
-	                    equiView.target = item.globalEffects[0].synth;
-
-				        orbitsElements[orbitIndex][\pan][\element].value_(item.get(\pan));
-						orbitsElements[orbitIndex][\pan][\value].value_(item.get(\pan));
-						orbitsElements[orbitIndex][\masterGain][\element].value_((item.get(\masterGain) + 1).explin(1,3, 0,1));
-						orbitsElements[orbitIndex][\masterGain][\value].value_(item.get(\masterGain));
-						orbitsElements[orbitIndex][\reverb][\element].value_(item.get(reverbVariableName));
+				        orbitsElements[item.orbitIndex][\pan][\element].value_(item.get(\pan));
+						orbitsElements[item.orbitIndex][\pan][\value].value_(item.get(\pan));
+						orbitsElements[item.orbitIndex][\masterGain][\element].value_((item.get(\masterGain) + 1).explin(1,3, 0,1));
+						orbitsElements[item.orbitIndex][\masterGain][\value].value_(item.get(\masterGain));
+						orbitsElements[item.orbitIndex][\reverb][\element].value_(item.get(reverbVariableName));
                     });
 
-			        setEQuiValues.value(activeOrbit, equiView);
-	                equiView.target = activeOrbit.globalEffects[0].synth;
+			        fxs[\eq][\setEQuiValues].value(activeOrbit, fxs[\eq][\equiView]);
+	                fxs[\eq][\equiView].target = activeOrbit.globalEffects[0].synth;
 			}.defer;
 	    }, ("/SuperDirtMixer/loadPreset"), recvPort: 57120).fix;
-	} */
+	}
 
-/*
-
-	addMidiControlButtonListener { OSCFunc ({|msg|
+	addMidiControlButtonListener { |midiControlButtons, switchControlButtonEvent |
+		OSCFunc ({|msg|
 				{
 				    var midiControlButtonIndex = msg[1];
 
@@ -158,6 +158,6 @@ SuperDirtMixerOSCListener {
 				    switchControlButtonEvent.value(midiControlButtonIndex);
 			}.defer;
 	    }, ("/SuperDirtMixer/midiControlButton"), recvPort: 57120).fix;
-    } */
+    }
 
 }

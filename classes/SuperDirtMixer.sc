@@ -48,14 +48,14 @@ SuperDirtMixer {
 	var <>tidalNetAddr;
 	var <>orbitLabels;
 	var <>prMasterBus;
-	var <>receivePresetLoad;
 	var <>switchControlButtonEvent;
 	var <>setEQValueFunc;
 	var <updateEQ;
 	var reverbVariableName = \room;
 	var reverbNativeSize = 0.95;
 	var oscMasterLevelSender;
-	var presetFiles;
+	var <>presetFiles;
+	var <>presetFile;
 	var defaultParentEvent, defaultParentEventKeys, eqDefaultEventKeys;
 	var <>enabledCopyPasteFeature = false;
 
@@ -87,6 +87,8 @@ SuperDirtMixer {
 				\midPeakFreq, \midPeakGain, \midPeakRq,
 				\hiPeakFreq, \hiPeakGain, \hiPeakRq,
 				\hiShelfFreq, \hiShelfGain, \hiShelfRs);
+
+			presetFile = 'Default.json';
 
 			this.prLoadPresetFiles;
 
@@ -191,8 +193,8 @@ SuperDirtMixer {
 	}
 
 	/* PRESET MANAGEMENT */
-	loadPreset { |presetFile|
-		var defaultEvents = JSONlib.convertToSC(File.readAllString((presetPath ++ presetFile).resolveRelative, "r"));
+	loadPreset {
+		var defaultEvents = JSONlib.convertToSC(File.readAllString((presetPath ++ this.presetFile).resolveRelative, "r"));
 
 	    defaultEvents.do({
 		     arg defaultEvent, index;
@@ -201,9 +203,9 @@ SuperDirtMixer {
 
 	}
 
-	savePreset { |presetFile|
+	savePreset {
 		var orbitPresets = Array.new(dirt.orbits.size);
-		var file = File((presetPath ++ presetFile).resolveRelative, "w");
+		var file = File((presetPath ++ this.presetFile).resolveRelative, "w");
 
 		dirt.orbits.do({
 	         arg orbit;
@@ -232,9 +234,6 @@ SuperDirtMixer {
 		var window, v, equalizerComposite, freqScope, orbitUIElements, utilityElements, meterResp, masterOutResp, loadPresetListener;// local machine
 		var setEQuiValues;
 		var activeOrbit = dirt.orbits[0];
-		var presetFile = 'Default.json';
-		var copyPastePresetFile = 'Default.json';
-		var orbitLevelIndicators = Array.new(dirt.orbits.size);
 		var midiControlButtons = Array.new(20);
 		var reshapedMidiControlButtons;
 		var orbitMixerViews = Array.new((dirt.orbits.size * 2) - 1);
@@ -245,11 +244,11 @@ SuperDirtMixer {
 		var presetListView = ListView(window,Rect(10,10,30,30))
 		.items_(presetFiles)
         .action_({ arg sbs;
-				presetFile = presetListView.items[sbs.value] // .value returns the integer
+				this.presetFile = presetListView.items[sbs.value]; // .value returns the integer
 		});
 		var oscListener;
-		var mixerUI = MixerUI.new;
-
+		var mixerUI = MixerUI.new(dirt.orbits.size);
+		var utilityUI;
 
 		var defaultFileIndex;
 
@@ -262,6 +261,12 @@ SuperDirtMixer {
 		var uiKnobFactories = UIKnobFactories();
 
 		var guiElements = Dictionary.new;
+
+		var wrapperLoadPreset = {
+			|presetFile|
+			this.presetFile = presetFile;
+			this.loadPreset;
+		};
 
 		guiElements.put(\stageMaster, Dictionary.new);
 
@@ -286,13 +291,13 @@ SuperDirtMixer {
 
 		reshapedMidiControlButtons = midiControlButtons.reshape(5,5);
 
-		presetFiles.do({|item,i| if (item.asSymbol == presetFile.asSymbol, {defaultFileIndex = i})});
+		presetFiles.do({|item,i| if (item.asSymbol == this.presetFile, {defaultFileIndex = i})});
 
 		presetListView.value = defaultFileIndex;
 
         dirt.startSendRMS;
 
-		this.loadPreset(presetFile);
+		this.loadPreset();
 
 		/* DEFINE EQ GUI */
 		equalizerComposite = CompositeView.new;
@@ -355,83 +360,6 @@ SuperDirtMixer {
 
 		setEQuiValues.value(dirt.orbits[0], guiElements[\fxs][\eq][\equiView]);
 
-
-	/* DEFINE PRESET UI */
-    utilityElements = { |window|
-		var equiView = guiElements[\fxs][\eq][\equiView];
-
-        window.onClose_({ masterOutResp.free; }); // you must have this
-
-	    VLayout(
-			Button.new.string_("Reset Current EQ").action_({
-				equiView.value = EQuiParams.new();
-				equiView.target = activeOrbit.globalEffects[0].synth;
-			}),
-				Button.new.states_([["Mute All", Color.black, Color.white], ["Unmute All", Color.white, Color.blue]])
-			    .action_({
-				    |view|
-				    if(view.value == 0) { this.tidalNetAddr.sendMsg("/unmuteAll") };
-				    if(view.value == 1) { this.tidalNetAddr.sendMsg("/muteAll") };
-			     }),
-			20,
-		presetListView,
-		Button.new.string_("Save Preset")
-				.action_({
-					setOrbitEQValues.value(activeOrbit, equiView);
-					this.savePreset(presetFile)
-				}),
-		Button.new.string_("Load Preset")
-			    .action_({
-				    |view|
-			        this.loadPreset(presetFile);
-
-					receivePresetLoad.value(presetFile);
-
-			        dirt.orbits.do({|item|
-		                setEQuiValues.value(item, equiView);
-	                    equiView.target = item.globalEffects[0].synth;
-
-						guiElements[\orbits][item.orbitIndex][\pan][\element].value_(item.get(\pan));
-						guiElements[\orbits][item.orbitIndex][\pan][\value].value_(item.get(\pan));
-						guiElements[\orbits][item.orbitIndex][\masterGain][\element].value_((item.get(\masterGain) + 1).explin(1,3, 0,1));
-						guiElements[\orbits][item.orbitIndex][\masterGain][\value].value_(item.get(\masterGain));
-						guiElements[\orbits][item.orbitIndex][\reverb][\element].value_(item.get(reverbVariableName));
-                    });
-
-			        setEQuiValues.value(activeOrbit, equiView);
-	                equiView.target = activeOrbit.globalEffects[0].synth;
-			     }),
-		20,
-		Button.new.string_("Reset All")
-			    .action_({
-				    |view|
-			        this.initDefaultParentEvents;
-
-			        dirt.orbits.do({|item|
-		                setEQuiValues.value(item, equiView);
-						equiView.target = item.globalEffects[0].synth;
-
-						guiElements[\orbits][item.orbitIndex][\pan][\element].value_(0.5);
-						guiElements[\orbits][item.orbitIndex][\pan][\value].value_(0.5);
-						guiElements[\orbits][item.orbitIndex][\masterGain][\element].value_(1/2);
-						guiElements[\orbits][item.orbitIndex][\masterGain][\value].value_(1.0);
-						guiElements[\orbits][item.orbitIndex][\reverb][\element].value_(0.0);
-                    });
-
-			        setEQuiValues.value(activeOrbit, equiView);
-	                equiView.target = activeOrbit.globalEffects[0].synth;
-			    })
-         )
-    };
-
-		/*(0..(dirt.orbits.size - 1)).do({
-			arg item;
-			var baseIndex = item * 2;
-			orbitMixerViews.insert(baseIndex, orbitUIElements.value(window, orbitLabels[item], dirt.orbits[item]));
-			if ( (item == (dirt.orbits.size - 1)).not, {orbitMixerViews.insert(baseIndex + 1, 15)});
-		});*/
-
-
 		(0..(dirt.orbits.size - 1)).do({
 			arg item;
 			var baseIndex = item * 2;
@@ -443,10 +371,18 @@ SuperDirtMixer {
 					, setOrbitEQValues
 					, this.tidalNetAddr
 					, reverbVariableName
-					, orbitLevelIndicators
 			));
 			if ( (item == (dirt.orbits.size - 1)).not, {orbitMixerViews.insert(baseIndex + 1, 15)});
 		});
+
+		utilityUI = UtilityUI.new(
+			guiElements
+			, dirt.orbits
+			, activeOrbit
+			, { this.loadPreset }
+			, { this.savePreset }
+			, this.initDefaultParentEvents
+			, masterOutResp, presetListView, reverbVariableName);
 
 
 // Create a window
@@ -467,32 +403,29 @@ window.layout_(
 				300
 			),
 			MasterUI.createMasterUIComponent(guiElements[\stageMaster], this.prMasterBus, leftMasterIndicator, rightMasterIndicator),
-			utilityElements.value(window)
+			utilityUI.utilityElements(window)
 		)
 		)
 	  );
 
 		this.startEQEffect;
 
-		oscListener = SuperDirtMixerOSCListener.new(guiElements, dirt.orbits);
+		oscListener = SuperDirtMixerOSCListener.new(guiElements, dirt.orbits, activeOrbit, wrapperLoadPreset);
 
 		/* OSC LISTENERS */
 		oscListener.addMasterLevelOSCFunc(leftMasterIndicator, rightMasterIndicator);
-		oscListener.addMeterResponseOSCFunc(orbitLevelIndicators);
+		oscListener.addMeterResponseOSCFunc(mixerUI.orbitLevelIndicators);
 		oscListener.addReverbListener(reverbVariableName);
 		oscListener.addPanListener();
 		oscListener.addGainListener();
 		oscListener.addTidalvstPresetListener();
-
-		/* TODO
-		oscListener.addLoadPresetListener
-		oscListener.addTidalvstPresetListener
-		oscListener.addMidiControlButtonListener*/
+		oscListener.addLoadPresetListener(presetListView, reverbVariableName, this.presetFiles);
+		oscListener.addMidiControlButtonListener(midiControlButtons, switchControlButtonEvent);
 
 		window.onClose_({ dirt.stopSendRMS;  meterResp.free; loadPresetListener.free; });
 		window.front;
 
-		JSONlib.convertToJSON(guiElements).postln;
+		//JSONlib.convertToJSON(guiElements).postln;
 	}
 
 }

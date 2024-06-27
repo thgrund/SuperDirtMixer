@@ -1,7 +1,17 @@
 MixerUI {
    var <>activeOrbit;
 
-   createMixerUIComponent { |text, orbit, guiElements, setOrbitEQValues, tidalNetAddr, reverbVariableName, orbitLevelIndicators|
+   var <orbitLevelIndicators;
+
+	*new { | orbitSize|
+        ^super.new.init(orbitSize);
+    }
+
+    init { |orbitSize|
+       orbitLevelIndicators = Array.new(orbitSize);
+    }
+
+   createMixerUIComponent { |text, orbit, guiElements, setOrbitEQValues, tidalNetAddr, reverbVariableName|
 
 			var equiView = guiElements[\fxs][\eq][\equiView];
 	     	var freqScope = guiElements[\fxs][\eq][\freqScope];
@@ -61,7 +71,7 @@ MixerUI {
 
 			guiElements[\orbits].add(newOrbitElements);
 
-			orbitLevelIndicators.add(Array.fill(~dirt.numChannels, {LevelIndicator.new.maxWidth_(12).drawsPeak_(true).warning_(0.9).critical_(1.0)}));
+			this.orbitLevelIndicators.add(Array.fill(~dirt.numChannels, {LevelIndicator.new.maxWidth_(12).drawsPeak_(true).warning_(0.9).critical_(1.0)}));
 
 			if (orbit == activeOrbit,
 				{eqButton.states_([["EQ", Color.white, Color.new255(238, 180, 34)]])},
@@ -72,8 +82,8 @@ MixerUI {
 				panKnob,
 				panNumBox,
 				HLayout(
-					orbitLevelIndicators[orbit.orbitIndex][0],
-					orbitLevelIndicators[orbit.orbitIndex][1],
+					this.orbitLevelIndicators[orbit.orbitIndex][0],
+					this.orbitLevelIndicators[orbit.orbitIndex][1],
 					gainSlider
 				).spacing_(0),
 				gainNumBox,
