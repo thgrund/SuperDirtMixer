@@ -13,7 +13,7 @@ UIKnobFactories {
 		    parent[key].put(\element,
 			    Knob().value_(default).action_({|a|
 				    parent[key][\value].string_(
-					    formater.value(a.value);
+					formater.value(a.value);
 				    )
 		        })
 		    );

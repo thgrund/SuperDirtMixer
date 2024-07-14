@@ -1,6 +1,7 @@
 TITLE:: SuperDirtMixer
 summary:: Mixer for SuperDirt to provide mixing presets for TidalCycles. This includes level indicators, gain, pan, reverb and eq settings for every orbit (indiviually).
 categories:: Live Coding
+related:: Reference/Architecture
 
 DESCRIPTION::
 This is a mixer ui was created for the sound engine strong::SuperDirt:: link::https://github.com/musikinformatik/SuperDirt:: for the strong::TidalCycles:: link::http://tidalcycles.org/:: programming language. The main motivation of this mixer was to get rid of using a DAW like Ableton in a live coding setup, because the author just used it for mixing a live setup. This mixer helps to realize tonal depth, clean frequency separation and a stereo panorama and makes this easily accessible in SuperDirt.

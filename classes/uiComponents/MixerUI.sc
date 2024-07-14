@@ -1,22 +1,86 @@
-MixerUI {
-   var <>activeOrbit;
-
+MixerUI : UIFactories {
+   var activeOrbit;
+   var handler;
    var <orbitLevelIndicators;
+   var >reverbVariableName;
+   var orbits;
+   var guiElements;
+   var tidalNetAddr;
 
-	*new { | orbitSize|
-        ^super.new.init(orbitSize);
+	*new { | initHandler, initOrbits|
+        ^super.new.init(initHandler, initOrbits);
     }
 
-    init { |orbitSize|
-       orbitLevelIndicators = Array.new(orbitSize);
+    init { |initHandler, initOrbits|
+	   handler = initHandler;
+	   orbits = initOrbits;
+       orbitLevelIndicators = Array.new(orbits.size);
+	   tidalNetAddr = NetAddr.new("127.0.0.1", 6010);
+	   guiElements = Array.new(orbits.size);
+
+	   if (orbits.isNil.not, {
+		  activeOrbit = orbits[0];
+	   });
+
+	   reverbVariableName = \room;
+
+		if (handler.isNil.not, {
+			handler.subscribe(this, \resetAll);
+			handler.subscribe(this, \updateUI);
+		});
+
+		this.addMeterResponseOSCFunc;
+		this.addPanListener;
+		this.addGainListener;
+		this.addReverbListener;
     }
 
-   createMixerUIComponent { |text, orbit, guiElements, setOrbitEQValues, tidalNetAddr, reverbVariableName|
+	handleEvent { |eventName, eventData|
+		if (eventName == \updateUI, {
+			orbits.do({|item|
+				guiElements[item.orbitIndex][\pan][\element].value_(item.get(\pan));
+				guiElements[item.orbitIndex][\pan][\value].value_(item.get(\pan));
+				guiElements[item.orbitIndex][\masterGain][\element].value_((item.get(\masterGain) + 1).explin(1,3, 0,1));
+				guiElements[item.orbitIndex][\masterGain][\value].value_(item.get(\masterGain));
+				guiElements[item.orbitIndex][\reverb][\element].value_(item.get(reverbVariableName));
+			});
+		});
 
-			var equiView = guiElements[\fxs][\eq][\equiView];
-	     	var freqScope = guiElements[\fxs][\eq][\freqScope];
-		    var setEQuiValues = guiElements[\fxs][\eq][\setEQuiValues];
-			var orbitElements = guiElements[\orbits][orbit.orbitIndex];
+		if (eventName == \resetAll, {
+			orbits.do({|item|
+				guiElements[item.orbitIndex][\pan][\element].value_(0.5);
+				guiElements[item.orbitIndex][\pan][\value].value_(0.5);
+				guiElements[item.orbitIndex][\masterGain][\element].value_(1/2);
+				guiElements[item.orbitIndex][\masterGain][\value].value_(1.0);
+				guiElements[item.orbitIndex][\reverb][\element].value_(0.0);
+            });
+		});
+
+    }
+
+    createUI {
+		var orbitMixerViews = Array.new((orbits.size * 2) - 1);
+
+		(0..(orbits.size - 1)).do({
+			arg item;
+			var baseIndex = item * 2;
+
+			orbitMixerViews.insert(baseIndex,
+				this.createMixerUIComponent(
+					orbits[item]
+					, reverbVariableName
+			));
+			if ( (item == (orbits.size - 1)).not, {orbitMixerViews.insert(baseIndex + 1, 15)});
+		});
+
+	   ^HLayout(
+			*orbitMixerViews
+	   );
+    }
+
+    createMixerUIComponent { |orbit, reverbVariableName|
+		    var text = orbit.get(\label);
+			var orbitElements = guiElements[orbit.orbitIndex];
 
 			var panKnob = Knob().value_(orbit.get(\pan)).centered_(true).action_({|a|
 				    orbit.set(\pan,a.value);
@@ -44,15 +108,12 @@ MixerUI {
 		            orbit.set(\masterGain,a.value);
 	            });
 
-	        var eqButton = Button.new.string_("EQ").action_({ |a|
+	        var eqButton = Button.new.string_("FX").action_({ |a|
 				    // Save EQ values before switching to the new eq orbit
-				    setOrbitEQValues.value(this.activeOrbit, equiView);
-			        this.activeOrbit = orbit;
-                    setEQuiValues.value(orbit, equiView);
-			        equiView.target = orbit.globalEffects[0].synth;
-			        freqScope.inBus = orbit.dryBus;
-				    guiElements[\orbits].do({arg item; item[\eq][\element].states_([["EQ", Color.black, Color.white]])});
-		            a.states_([["EQ", Color.white, Color.new255(238, 180, 34)]]);
+			        handler.emitEvent(\setActiveOrbit, orbit);
+			        activeOrbit = orbit;
+				    guiElements.do({arg item; item[\eq][\element].states_([["FX", Color.black, Color.white]])});
+		            a.states_([["FX", Color.white, Color.new255(238, 180, 34)]]);
 	            });
 
             var reverbKnob =  Knob().value_(orbit.get(reverbVariableName)).action_({|a|
@@ -69,13 +130,13 @@ MixerUI {
 				, \eq, Dictionary.newFrom([\element, eqButton])
 			]);
 
-			guiElements[\orbits].add(newOrbitElements);
+			guiElements.add(newOrbitElements);
 
 			this.orbitLevelIndicators.add(Array.fill(~dirt.numChannels, {LevelIndicator.new.maxWidth_(12).drawsPeak_(true).warning_(0.9).critical_(1.0)}));
 
-			if (orbit == activeOrbit,
-				{eqButton.states_([["EQ", Color.white, Color.new255(238, 180, 34)]])},
-				{eqButton.states_([["EQ", Color.black, Color.white]])});
+		    if (orbit == activeOrbit,
+				{eqButton.states_([["FX", Color.white, Color.new255(238, 180, 34)]])},
+				{eqButton.states_([["FX", Color.black, Color.white]])});
 
 			^VLayout(
 				orbitLabelView,
@@ -95,15 +156,79 @@ MixerUI {
 					.states_([["M", Color.black, Color.white], ["M", Color.white, Color.blue]])
 					.action_({
 						|view|
-						if(view.value == 0) { this.tidalNetAddr.sendMsg("/unmute",orbit.orbitIndex + 1) };
-						if(view.value == 1) { this.tidalNetAddr.sendMsg("/mute",orbit.orbitIndex + 1) };
+						if(view.value == 0) { tidalNetAddr.sendMsg("/unmute",orbit.orbitIndex + 1) };
+						if(view.value == 1) { tidalNetAddr.sendMsg("/mute",orbit.orbitIndex + 1) };
 					}),
 					Button.new.maxWidth_(25).states_([["S", Color.black, Color.white], ["S", Color.white, Color.red]]).action_({
 						|view|
-						if(view.value == 0) { this.tidalNetAddr.sendMsg("/unsolo",orbit.orbitIndex + 1) };
-						if(view.value == 1) { this.tidalNetAddr.sendMsg("/solo",orbit.orbitIndex + 1) };
+						if(view.value == 0) { tidalNetAddr.sendMsg("/unsolo",orbit.orbitIndex + 1) };
+						if(view.value == 1) { tidalNetAddr.sendMsg("/solo",orbit.orbitIndex + 1) };
 					}),
 				),
 			)
 		}
+
+	/*
+	 * ADD OSC LISTENERS
+	 */
+	addMeterResponseOSCFunc {
+		OSCFunc({ |msg|
+				{
+					try {
+					    var indicators = orbitLevelIndicators[msg[2]];
+
+                        (0..(~dirt.numChannels - 1)).do({ |item|
+						    var baseIndex = ((item + 1) * 2) + 1;
+						    var rms = msg[baseIndex + 1].ampdb.linlin(-80, 0, 0, 1);
+				            var peak = msg[baseIndex].ampdb.linlin(-80, 0, 0, 1, \min);
+
+					        indicators[item].value = rms;
+				            indicators[item].peakLevel = peak;
+					    });
+
+					} { |error| };
+				}.defer;
+			}, ("/rms")).fix;
+	}
+
+	addPanListener { OSCFunc ({|msg|
+				{
+				    var orbitIndex = msg[1];
+				    var value     = msg[2];
+
+				    orbits.at(orbitIndex).set(\pan, value.linlin(0,1,0,1.0));
+				    guiElements[orbitIndex][\pan][\element].value_(orbits.at(orbitIndex).get(\pan));
+					guiElements[orbitIndex][\pan][\value].value_(orbits.at(orbitIndex).get(\pan));
+			}.defer;
+	    }, ("/SuperDirtMixer/pan"), recvPort: 57120).fix;
+	}
+
+	addGainListener { OSCFunc ({|msg|
+				{
+				    var orbitIndex = msg[1];
+				    var value     = msg[2];
+
+				    orbits.at(orbitIndex).set(\masterGain, value.linlin(0,2,0,2));
+					guiElements[orbitIndex][\masterGain][\element].value_((orbits.at(orbitIndex).get(\masterGain) + 1).explin(1,3, 0,1));
+					guiElements[orbitIndex][\masterGain][\value].value_(orbits.at(orbitIndex).get(\masterGain));
+			}.defer;
+	    }, ("/SuperDirtMixer/masterGain"), recvPort: 57120).fix;
+	}
+
+	addReverbListener {
+
+		^OSCFunc ({|msg|
+				{
+					try {
+					    var orbitIndex = msg[1];
+				        var value      = msg[2];
+
+				        orbits.at(orbitIndex).set(reverbVariableName, value.linlin(0,1,0,1.0));
+					    guiElements[orbitIndex][\reverb][\element].value_(orbits.at(orbitIndex).get(reverbVariableName));
+
+					} { |error| };
+
+			}.defer;
+	    }, ("/SuperDirtMixer/reverb"), recvPort: 57120).fix;
+    }
 }
