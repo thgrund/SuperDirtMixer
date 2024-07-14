@@ -93,7 +93,7 @@ UtilityUI {
 	}
 
 	/* DEFINE PRESET UI */
-    utilityElements {
+    createUI {
 	    ^VLayout(
 				Button.new.states_([["Mute All", Color.black, Color.white], ["Unmute All", Color.white, Color.blue]])
 			    .action_({

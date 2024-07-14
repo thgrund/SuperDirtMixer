@@ -146,21 +146,18 @@ SuperDirtMixer {
 		oscMasterLevelSender.free;
 	}
 
-
-
 	/* GUI */
 	gui {
 		/* DECLARE GUI VARIABLES */
 		var window, v, meterResp;// local machine
 		var activeOrbit = dirt.orbits[0];
-		var midiControlButtons = Array.new(20);
-		var reshapedMidiControlButtons;
 		var setOrbitEQValues;
 		var oscListener;
 		var mixerUI = MixerUI.new(eventHandler, dirt.orbits);
 		var masterUI = MasterUI.new(eventHandler);
 		var utilityUI =  UtilityUI.new( eventHandler, dirt.orbits, this.initDefaultParentEvents, presetPath, reverbVariableName, reverbNativeSize);
 		var equalizerUI = EqualizerUI.new(eventHandler, dirt.orbits);
+		var midiControlUI = MidiControlUI.new(switchControlButtonEvent);
 
 		var defaultFileIndex;
 
@@ -188,11 +185,7 @@ SuperDirtMixer {
 			, \highEndDb, "High End dB",  formaters[\toFreqdB], 2/24 + 0.5);
 
 		/* INIT GUI COMPONENTS */
-		20.do({|item|
-			midiControlButtons.add(Button.new.action_({ ~midiInternalOut.control(0, item + 100, 0)}).string_(item + 1).minHeight_(36).minWidth_(36));
-		});
 
-		reshapedMidiControlButtons = midiControlButtons.reshape(5,5);
 
         dirt.startSendRMS;
 
@@ -204,24 +197,12 @@ window.layout_(
 	   mixerUI.createUI,
 	   HLayout (
 	        equalizerUI.equalizerComposite,
-			VLayout(
-				StaticText.new.string_("MIDI Part Switch").minWidth_(100).maxHeight_(30).align_(\center),
-				HLayout(*reshapedMidiControlButtons[0]),
-				HLayout(*reshapedMidiControlButtons[1]),
-				HLayout(*reshapedMidiControlButtons[2]),
-				HLayout(*reshapedMidiControlButtons[3]),
-				300
-			),
+			midiControlUI.createUI,
 			masterUI.createUI(guiElements[\stageMaster], this.prMasterBus),
-			utilityUI.utilityElements
+			utilityUI.createUI
 		)
 		)
 	  );
-
-		oscListener = SuperDirtMixerOSCListener.new(guiElements, dirt.orbits, activeOrbit);
-
-		/* OSC LISTENERS */
-		oscListener.addMidiControlButtonListener(midiControlButtons, switchControlButtonEvent);
 
 		window.onClose_({ dirt.stopSendRMS;  meterResp.free});
 		window.front;
