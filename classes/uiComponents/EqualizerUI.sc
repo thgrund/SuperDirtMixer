@@ -4,6 +4,8 @@ EqualizerUI {
 	var orbits;
 	var eqView, <equalizerComposite, freqScope;
 	var activeOrbit;
+	var defaultParentEvent;
+
 
     *new { |initHandler, initOrbits|
         ^super.new.init(initHandler, initOrbits);
@@ -12,6 +14,14 @@ EqualizerUI {
 	init { |initHandler, initOrbits|
 		handler = initHandler;
 		orbits = initOrbits;
+
+		defaultParentEvent = [
+		    \loShelfFreq, 100, \loShelfGain, 0, \loShelfRs, 1,
+			\loPeakFreq, 250, \loPeakGain, 0, \loPeakRq, 1,
+			\midPeakFreq, 1000, \midPeakGain, 0, \midPeakRq, 1,
+			\hiPeakFreq, 3500, \hiPeakGain, 0, \hiPeakRq, 1,
+			\hiShelfFreq, 6000, \hiShelfGain, 0, \hiShelfRs, 1
+	    ];
 
 		if (handler.isNil.not, {
 			handler.subscribe(this, \setActiveOrbit);
@@ -32,6 +42,8 @@ EqualizerUI {
 			this.setEQuiValues(activeOrbit);
 
 		});
+
+		handler.emitEvent(\extendDefaultParentEvent, defaultParentEvent);
 
 		this.addEqualizerListener;
 	}
@@ -143,11 +155,7 @@ EqualizerUI {
 		var event = ();
 		var superDirtOSC = NetAddr("127.0.0.1", 57120);
 		var orbitIndex;
-		var eqParams = Array.with( \loShelfFreq, \loShelfGain, \loShelfRs,
-			\loPeakFreq, \loPeakGain, \loPeakRq,
-			\midPeakFreq, \midPeakGain, \midPeakRq,
-			\hiPeakFreq, \hiPeakGain, \hiPeakRq,
-			\hiShelfFreq, \hiShelfGain, \hiShelfRs);
+		var eqParams = defaultParentEvent.keys;
 
 		event.putPairs(msg[1..]);
 

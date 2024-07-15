@@ -21,5 +21,9 @@ EventDispatcher {
             action.value(eventData);
         };
     }
+
+	printEventNames {
+		["Event Dispatcher event names", events.keys].postln;
+	}
 }
 

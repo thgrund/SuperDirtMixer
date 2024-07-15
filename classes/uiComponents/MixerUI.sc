@@ -1,33 +1,40 @@
 MixerUI : UIFactories {
-   var activeOrbit;
-   var handler;
-   var <orbitLevelIndicators;
-   var >reverbVariableName;
-   var orbits;
-   var guiElements;
-   var tidalNetAddr;
+    var activeOrbit;
+    var handler;
+    var <orbitLevelIndicators;
+    var >reverbVariableName, >reverbNativeSize;
+    var orbits;
+    var guiElements;
+    var tidalNetAddr;
+	var defaultParentEvent;
 
 	*new { | initHandler, initOrbits|
         ^super.new.init(initHandler, initOrbits);
     }
 
     init { |initHandler, initOrbits|
-	   handler = initHandler;
-	   orbits = initOrbits;
-       orbitLevelIndicators = Array.new(orbits.size);
-	   tidalNetAddr = NetAddr.new("127.0.0.1", 6010);
-	   guiElements = Array.new(orbits.size);
+		handler = initHandler;
+		orbits = initOrbits;
+		orbitLevelIndicators = Array.new(orbits.size);
+		tidalNetAddr = NetAddr.new("127.0.0.1", 6010);
+		guiElements = Array.new(orbits.size);
+		reverbNativeSize = 0;
 
-	   if (orbits.isNil.not, {
-		  activeOrbit = orbits[0];
-	   });
+		if (orbits.isNil.not, {
+			activeOrbit = orbits[0];
+		});
 
-	   reverbVariableName = \room;
+		reverbVariableName = \room;
+
+		defaultParentEvent = [
+			\pan, 0.5, \masterGain, 1.0, reverbVariableName.asSymbol, 0.0
+	    ];
 
 		if (handler.isNil.not, {
 			handler.subscribe(this, \resetAll);
 			handler.subscribe(this, \updateUI);
 		});
+
 
 		this.addMeterResponseOSCFunc;
 		this.addPanListener;
@@ -60,6 +67,16 @@ MixerUI : UIFactories {
 
     createUI {
 		var orbitMixerViews = Array.new((orbits.size * 2) - 1);
+
+		defaultParentEvent = [
+			\pan, 0.5, \masterGain, 1.0, reverbVariableName.asSymbol, 0.0
+	    ];
+
+		if (reverbVariableName.asSymbol == \room, {
+			defaultParentEvent.add(\size).add(reverbNativeSize)
+		});
+
+		handler.emitEvent(\extendDefaultParentEvent, defaultParentEvent);
 
 		(0..(orbits.size - 1)).do({
 			arg item;
@@ -95,7 +112,7 @@ MixerUI : UIFactories {
 		            orbit.set(\pan,a.value);
 	            });
 
-	        var gainSlider = Slider.new.maxWidth_(30).value_(orbit.get(\masterGain).linexp(0, 2, 1,2) - 1).action_({|a|
+		    var gainSlider = Slider.new.maxWidth_(30).value_((orbit.get(\masterGain) + 1).explin(1,3,0,1)).action_({|a|
 			        orbit.set(\masterGain,a.value.linexp(0, 1.0, 1,3) - 1);
 		            gainNumBox.value_(a.value.linexp(0, 1.0, 1,3)-1);
 		        });
@@ -104,7 +121,7 @@ MixerUI : UIFactories {
 	            .decimals_(2)
 	            .clipLo_(0).clipHi_(2).align_(\center)
 	            .scroll_step_(0.1).value_(orbit.get(\masterGain)).action_({|a|
-		            gainSlider.value_(a.value.linexp(0, 2, 1,2.0) - 1);
+			        gainSlider.value_((a.value + 1).explin(1, 3, 0, 1));
 		            orbit.set(\masterGain,a.value);
 	            });
 

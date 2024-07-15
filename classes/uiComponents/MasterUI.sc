@@ -1,20 +1,27 @@
 MasterUI : UIFactories {
-    var handler;
 	var leftMasterIndicator, rightMasterIndicator;
+	var stageMaster;
 
-    *new { |initHandler|
-        ^super.new.init(initHandler);
+    *new {
+        ^super.new.init;
     }
 
-	init { |initHandler|
-		handler = initHandler;
+	init {
+		var uiKnobFactories = UIKnobFactories();
 
-		if (handler.isNil.not, {
-			handler.subscribe(this, \masterEvent);
-		});
+		stageMaster = Dictionary.new;
 
 		leftMasterIndicator = LevelIndicator.new.maxWidth_(12).drawsPeak_(true).warning_(0.9).critical_(1.0);
 		rightMasterIndicator = LevelIndicator.new.maxWidth_(12).drawsPeak_(true).warning_(0.9).critical_(1.0);
+
+		// Live Button
+		stageMaster.put(\live, Dictionary.newFrom([\element, Button.new.string_("Live").action_({ |a| })]));
+		uiKnobFactories.knobWithValueLabelFactory( stageMaster
+			, \compThreshold, "Comp Threshold", formaters[\toDecibels], 0.7);
+		uiKnobFactories.knobWithValueLabelFactory( stageMaster
+			, \limiterLevel, "Limiter Level",  formaters[\toMilliseconds], 1.0);
+		uiKnobFactories.knobWithValueLabelFactory( stageMaster
+			, \highEndDb, "High End dB",  formaters[\toFreqdB], 2/24 + 0.5);
 
 		this.addMasterLevelOSCFunc;
 	}
@@ -24,7 +31,7 @@ MasterUI : UIFactories {
     }
 
 	createUI {
-		|stageMaster, prMasterBus|
+		|prMasterBus|
 
 			^VLayout(
 				/* DEFINE MASTER UI : EXTRACT -> Stage master */
@@ -35,7 +42,6 @@ MasterUI : UIFactories {
 				10,
 			    Button.new.string_("Live").action_({ |a|
 				   "Live 1 button was pressed".postln;
-				   handler.emitEvent(\eqEvent, "Data for eqEvent from MasterUIService");
 			    }),
 			    10,
 				stageMaster[\compThreshold][\title],

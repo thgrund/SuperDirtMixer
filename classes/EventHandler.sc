@@ -28,4 +28,8 @@ EventHandler {
             service.handleEvent(eventName, data);
         });
     }
+
+	printEventNames {
+		dispatcher.printEventNames;
+	}
 }

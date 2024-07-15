@@ -1,23 +1,25 @@
 UtilityUI {
-	var fxs, defaultParentEvents;
+	var fxs;
 	var loadPreset, savePreset;
 	var presetListView, presetFile, presetFiles, presetPath;
 	var handler;
 	var orbits;
-	var reverbVariableName, reverbNativeSize;
+	var defaultParentEvents;
 
-	*new { | initHandler, initOrbits, initDefaultParentEvents, initPresetPath, initReverbVariableName, initReverbNativeSize|
-        ^super.new.init(initHandler, initOrbits, initDefaultParentEvents, initPresetPath, initReverbVariableName, initReverbNativeSize)
+	*new { | initHandler, initOrbits, initPresetPath|
+        ^super.new.init(initHandler, initOrbits, initPresetPath)
     }
 
-    init { |initHandler, initOrbits, initDefaultParentEvents, initPresetPath, initReverbVariableName, initReverbNativeSize|
-		defaultParentEvents = initDefaultParentEvents;
+    init { |initHandler, initOrbits, initPresetPath|
 		handler = initHandler;
 		orbits = initOrbits;
-		reverbVariableName = initReverbVariableName;
-		reverbNativeSize = initReverbNativeSize;
+		defaultParentEvents = ();
 		presetPath = initPresetPath;
 		presetFile = 'Default.json';
+
+		if (handler.isNil.not, {
+			handler.subscribe(this, \extendDefaultParentEvent);
+		});
 
 		if (presetFile.isNil.not, {
 
@@ -38,6 +40,16 @@ UtilityUI {
 		});
 	}
 
+	handleEvent { |eventName, eventData|
+
+		if (eventName == \extendDefaultParentEvent, {
+			eventData.pairsDo { |key, val|
+				defaultParentEvents.put(key, val)
+			};
+		});
+
+		["UtilityUI", defaultParentEvents].postln;
+    }
 
 	prLoadPresetFiles { |path|
 		var filePaths;
@@ -68,22 +80,7 @@ UtilityUI {
 	         arg orbit;
   			 var presetEvent = ();
 
-			 var eqDefaultEventKeys = Array.with(
-				\loShelfFreq, \loShelfGain, \loShelfRs,
-				\loPeakFreq, \loPeakGain, \loPeakRq,
-				\midPeakFreq, \midPeakGain, \midPeakRq,
-				\hiPeakFreq, \hiPeakGain, \hiPeakRq,
-				\hiShelfFreq, \hiShelfGain, \hiShelfRs);
-
-			 eqDefaultEventKeys.do({|eventKey| presetEvent.put(eventKey, orbit.get(eventKey)) });
-
-			 presetEvent.put(reverbVariableName, orbit.get(reverbVariableName));
-			 if (reverbVariableName == \room, {
-				presetEvent.put(\size, reverbNativeSize);
-			 });
-
-			 presetEvent.put(\masterGain, orbit.get(\masterGain));
-			 presetEvent.put(\pan, orbit.get(\pan));
+			 defaultParentEvents.keys.do({|eventKey| presetEvent.put(eventKey, orbit.get(eventKey)) });
 
 			 orbitPresets.add(presetEvent);
         });
@@ -118,7 +115,6 @@ UtilityUI {
 		Button.new.string_("Reset All")
 			    .action_({
 				    |view|
-			        this.defaultParentEvents;
 				    handler.emitEvent(\resetAll);
 			    })
          )
