@@ -8,6 +8,8 @@ CompressorUI : UIFactories {
 	var activeOrbit;
 	var defaultParentEvent;
 	var minThreshold;
+	var uiKnobFactories;
+
 
 	var width, height;
 
@@ -53,16 +55,23 @@ CompressorUI : UIFactories {
 
 		compressorElements = Dictionary.new;
 
+		uiKnobFactories = UIKnobFactories(activeOrbit);
+
 		this.addSynthListener;
 	}
 
 	handleEvent { |eventName, eventData|
 		if (eventName == \setActiveOrbit, {
 			activeOrbit = eventData;
+
+			uiKnobFactories.activeOrbit = activeOrbit;
+
 			this.setBypassButtonState(bypassButton, false, activeOrbit, \activeCompressor);
+
 			compressorElements.keysValuesDo {|key, components|
 				if (activeOrbit.get(key).isNil.not, {
-					components[\element].valueAction = activeOrbit.get(key);
+					components[\element].valueAction =
+					    components[\orbitToKnobValue].value(activeOrbit.get(key));
 				});
 			};
 		});
@@ -166,7 +175,6 @@ CompressorUI : UIFactories {
 		var compressorComposite = CompositeView.new;
 		var comporessorView;
 		var gainReductionSlider;
-		var uiKnobFactories = UIKnobFactories();
 		var thresholdLabel;
 		var defaultParentEventDict = defaultParentEvent.asDict;
 
@@ -230,6 +238,7 @@ CompressorUI : UIFactories {
 				\element, thresholdSlider
 				, \title, StaticText.new.string_("T").align_(\center).maxHeight_(15)
 				, \value, thresholdLabel
+				, \orbitToKnobValue, {|value| value.linlin(minThreshold, 0, 0, 1)}
 			])
 		);
 
@@ -240,61 +249,91 @@ CompressorUI : UIFactories {
 			])
 		);
 
-		uiKnobFactories.knobWithValueLabelFactory(
+		uiKnobFactories.knobWithValueLabelFactory2(
 			compressorElements
-			, \cpRatio, "Ratio", {|value | "%".format(value.linexp(0,1,1,20).round(1e-2))}, (defaultParentEventDict[\cpRatio]).explin(1,20,0,1),
-			{ |knob|
-			    ratio = knob.value.linexp(0, 1, 1, 20);
-				activeOrbit.set(\cpRatio, ratio);
-			    comporessorView.refresh;
-		    }
+			, \cpRatio, "Ratio",
+			{|value| value.linexp(0,1,1,20).round(1e-2) },
+			{|value| (value).explin(1,20,0,1)},
+			"%",
+		    {
+				ratio = activeOrbit.get(\cpRatio);
+				comporessorView.refresh;
+			}
 		);
 
-		uiKnobFactories.knobWithValueLabelFactory( compressorElements
-			, \cpAttack, "Attack", {|value|
-				["Attack", value].postln;
-				"%ms".format(value.linexp(0,1,1,11).round(1e-2) - 1)
-			}, (defaultParentEventDict[\cpAttack] + 1).explin(1,11,0,1),
-			{ |knob| activeOrbit.set(\cpAttack, knob.value.linexp(0, 1, 1, 11) - 1)});
 
-		uiKnobFactories.knobWithValueLabelFactory( compressorElements
-			, \cpRelease, "Release", {|value| "%ms".format(value.linexp(0,1,1,11).round(1e-2) - 1)} , (defaultParentEventDict[\cpRelease] + 1).explin(1,11,0,1),
-			{ |knob| activeOrbit.set(\cpRelease, knob.value.linexp(0, 1, 1, 11) - 1)});
-
-		uiKnobFactories.knobWithValueLabelFactory( compressorElements
-			, \cpTrim, "Trim", {|value| "%dB".format(value.linlin(0, 1, 0, 60).round(1e-2))} , defaultParentEventDict[\cpTrim].linlin(0,60,0,1),
-			{ |knob| activeOrbit.set(\cpTrim, knob.value.linlin(0, 1, 0, 60))});
-
-		uiKnobFactories.knobWithValueLabelFactory( compressorElements
-			, \cpGain, "Gain", {|value| "%dB".format(value.linlin(0, 1, 0, 60).round(1e-2))} , defaultParentEventDict[\cpGain].linlin(0,60,0,1),
-			{ |knob| activeOrbit.set(\cpGain, knob.value.linlin(0, 1, 0, 60))});
-
-		uiKnobFactories.knobWithValueLabelFactory( compressorElements
-			, \cpLookahead, "Lookahead", {|value| "%".format(value.round(1e-2))} , defaultParentEventDict[\cpLookahead],
-			{ |knob| activeOrbit.set(\cpLookahead, knob.value)});
-
-		uiKnobFactories.knobWithValueLabelFactory( compressorElements
-			, \cpKnee, "Knee", {|value| "%".format(value.linlin(0,1,0,10).round(1e-2))} , defaultParentEventDict[\cpKnee].linlin(0, 10, 0, 1),
-			{ |knob| activeOrbit.set(\cpKnee, knob.value.linlin(0,1,0,10))});
-
-		uiKnobFactories.knobWithValueLabelFactory( compressorElements
-			, \cpBias, "Bias", {|value| "%".format(value.linlin(0,1,0,0.5).round(1e-2))} , defaultParentEventDict[\cpBias].linlin(0, 0.5, 0, 1),
-			{ |knob| activeOrbit.set(\cpBias, knob.value.linlin(0,1,0,0.5))});
-
-		uiKnobFactories.knobWithValueLabelFactory( compressorElements
-			, \cpHpf, "HPF", {|value| "%".format(value.linlin(0,1,10,1000).round(1))} , defaultParentEventDict[\cpHpf].linlin(10,1000, 0,1),
-			{ |knob| activeOrbit.set(\cpHpf, knob.value.linlin(0,1,10,1000))});
-
-		/*
-		Ndef(\compressor).addSpec(
-		     \threshhold, [0,-120],
-		     \lookahead, [0.0,1],
-		     \saturate, \switch,
-		     \hpf, [10, 1000] ,
-		     \knee, [0.0, 10] ,
-		     \bias, [0.0, 0.5] ,
+		uiKnobFactories.knobWithValueLabelFactory2(
+			compressorElements
+			, \cpAttack, "Attack",
+			{|value| value.linexp(0,1,1,11).round(1e-2) - 1},
+			{|value| (value + 1).explin(1,11,0,1)},
+			"%ms"
 		);
-		*/
+
+		uiKnobFactories.knobWithValueLabelFactory2(
+			compressorElements
+			, \cpAttack, "Attack",
+			{|value| value.linexp(0,1,1,11).round(1e-2) - 1},
+			{|value| (value + 1).explin(1,11,0,1)},
+			"%ms"
+		);
+
+		uiKnobFactories.knobWithValueLabelFactory2(
+			compressorElements
+			, \cpRelease, "Release",
+			{|value| value.linexp(0,1,1,11).round(1e-2) - 1},
+			{|value| (value + 1).explin(1,11,0,1)},
+			"%ms"
+		);
+
+
+		uiKnobFactories.knobWithValueLabelFactory2(
+			compressorElements
+			, \cpTrim, "Trim",
+			{|value| value.linlin(0, 1, 0, 60).round(1e-2)},
+			{|value| value.linlin(0,60,0,1)},
+			"%dB"
+		);
+
+		uiKnobFactories.knobWithValueLabelFactory2(
+			compressorElements
+			, \cpGain, "Gain",
+			{|value| value.linlin(0, 1, 0, 60).round(1e-2)},
+			{|value| value.linlin(0,60,0,1)},
+			"%dB"
+		);
+
+		uiKnobFactories.knobWithValueLabelFactory2(
+			compressorElements
+			, \cpLookahead, "Lookahead",
+			{|value| value.round(1e-2)},
+			{|value| value},
+			"%"
+		);
+
+		uiKnobFactories.knobWithValueLabelFactory2(
+			compressorElements
+			, \cpKnee, "Knee",
+			{|value| value.linlin(0, 1, 0, 10).round(1e-2)},
+			{|value| value.linlin(0,10,0,1)},
+			"%"
+		);
+
+		uiKnobFactories.knobWithValueLabelFactory2(
+			compressorElements
+			, \cpBias, "Bias",
+			{|value| value.linlin(0, 1, 0, 0.5).round(1e-2)},
+			{|value| value.linlin(0,0.5,0,1)},
+			"%"
+		);
+
+		uiKnobFactories.knobWithValueLabelFactory2(
+			compressorElements
+			, \cpHpf, "HPF",
+			{|value| value.linlin(0, 1, 10, 1000).round(1e-2)},
+			{|value| value.linlin(10,1000,0,1)},
+			"%Freq"
+		);
 
 		comporessorView.refresh;
 
@@ -342,4 +381,5 @@ CompressorUI : UIFactories {
 			"CP compressed: %".format(msg).postln
 		}, '/cpCompressedRms');
 	}
+
 }
