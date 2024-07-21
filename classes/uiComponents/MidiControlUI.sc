@@ -20,19 +20,23 @@ MidiControlUI {
 	createUI {
 		var reshapedMidiControlButtons;
 
-		20.do({|item|
+		16.do({|item|
 			midiControlButtons.add(Button.new.action_({ ~midiInternalOut.control(0, item + 100, 0)}).string_(item + 1).minHeight_(36).minWidth_(36));
 		});
 
-		reshapedMidiControlButtons = midiControlButtons.reshape(5,5);
+		reshapedMidiControlButtons = midiControlButtons.reshape(8,2);
 
 		^VLayout(
-			StaticText.new.string_("MIDI Part Switch").minWidth_(100).maxHeight_(30).align_(\center),
+			StaticText.new.string_("MIDI Part Switch").fixedHeight_(15).align_(\center),
 			HLayout(*reshapedMidiControlButtons[0]),
 			HLayout(*reshapedMidiControlButtons[1]),
 			HLayout(*reshapedMidiControlButtons[2]),
 			HLayout(*reshapedMidiControlButtons[3]),
-			300
+			HLayout(*reshapedMidiControlButtons[4]),
+			HLayout(*reshapedMidiControlButtons[5]),
+			HLayout(*reshapedMidiControlButtons[6]),
+			HLayout(*reshapedMidiControlButtons[7]),
+			100
 		);
 	}
 

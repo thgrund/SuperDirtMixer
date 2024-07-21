@@ -29,11 +29,11 @@ UtilityUI {
 			.items_(presetFiles)
 			.action_({ arg sbs;
 				presetFile = presetListView.items[sbs.value]; // .value returns the integer
-			});
+			}).maxWidth_(150);
 
-			this.loadPreset;
-
-			presetFiles.do({|item,i| if (item.asSymbol == presetFile, {presetListView.value = i})});
+			presetListView.value = nil;
+			//this.loadPreset;
+			//presetFiles.do({|item,i| if (item.asSymbol == presetFile, {presetListView.value = i})});
 
 			this.addTidalvstPresetListener;
 			this.addLoadPresetListener;
@@ -41,14 +41,11 @@ UtilityUI {
 	}
 
 	handleEvent { |eventName, eventData|
-
 		if (eventName == \extendDefaultParentEvent, {
 			eventData.pairsDo { |key, val|
 				defaultParentEvents.put(key, val)
 			};
 		});
-
-		["UtilityUI", defaultParentEvents].postln;
     }
 
 	prLoadPresetFiles { |path|
@@ -92,13 +89,13 @@ UtilityUI {
 	/* DEFINE PRESET UI */
     createUI {
 	    ^VLayout(
-				Button.new.states_([["Mute All", Color.black, Color.white], ["Unmute All", Color.white, Color.blue]])
+			StaticText.new.string_("Preset").fixedHeight_(15).align_(\center),
+				/*Button.new.states_([["Mute All", Color.black, Color.white], ["Unmute All", Color.white, Color.blue]])
 			    .action_({
 				    |view|
 				    if(view.value == 0) { this.tidalNetAddr.sendMsg("/unmuteAll") };
 				    if(view.value == 1) { this.tidalNetAddr.sendMsg("/muteAll") };
-			     }),
-			20,
+			     }),*/
 		presetListView,
 		Button.new.string_("Save Preset")
 				.action_({
@@ -126,12 +123,12 @@ UtilityUI {
 			{
 				 var receivedPresetFile = msg[1];
 				 var presetFilesAsSymbol = presetFiles.collect({|item| item.asSymbol});
-				 var presetFile = receivedPresetFile;
+				 presetFile = receivedPresetFile;
 
-				    this.loadPreset(receivedPresetFile);
-				    presetListView.value = presetFilesAsSymbol.indexOf(receivedPresetFile.asSymbol);
+				 this.loadPreset;
+				 presetListView.value = presetFilesAsSymbol.indexOf(receivedPresetFile.asSymbol);
 
-				    handler.emitEvent(\updateUI);
+				 handler.emitEvent(\updateUI);
 			}.defer;
 	    }, ("/SuperDirtMixer/loadPreset"), recvPort: 57120).fix;
 	}

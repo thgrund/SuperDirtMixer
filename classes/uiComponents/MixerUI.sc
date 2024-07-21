@@ -20,15 +20,16 @@ MixerUI : UIFactories {
 		guiElements = Array.new(orbits.size);
 		reverbNativeSize = 0;
 
-		if (orbits.isNil.not, {
-			activeOrbit = orbits[0];
-		});
-
-		reverbVariableName = \room;
-
 		defaultParentEvent = [
 			\pan, 0.5, \masterGain, 1.0, reverbVariableName.asSymbol, 0.0
 	    ];
+
+		if (orbits.isNil.not, {
+			activeOrbit = orbits[0];
+			this.setOrbits(defaultParentEvent);
+		});
+
+		reverbVariableName = \room;
 
 		if (handler.isNil.not, {
 			handler.subscribe(this, \resetAll);
@@ -65,12 +66,18 @@ MixerUI : UIFactories {
 
     }
 
+	setOrbits { |pairs|
+		orbits.do(_.set(*pairs))
+	}
+
     createUI {
 		var orbitMixerViews = Array.new((orbits.size * 2) - 1);
 
 		defaultParentEvent = [
 			\pan, 0.5, \masterGain, 1.0, reverbVariableName.asSymbol, 0.0
 	    ];
+
+		this.setOrbits(defaultParentEvent);
 
 		if (reverbVariableName.asSymbol == \room, {
 			defaultParentEvent.add(\size).add(reverbNativeSize)

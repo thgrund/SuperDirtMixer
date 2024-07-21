@@ -50,6 +50,7 @@ SuperDirtMixer {
 	prInitGlobalEffect {
 		dirt.orbits.do { |x|
 			x.globalEffects = x.globalEffects.addFirst(GlobalDirtEffect(\dirt_global_eq, [\activeEq]));
+			x.globalEffects = x.globalEffects.addFirst(GlobalDirtEffect(\dirt_global_compressor, [\activeCompressor]));
 			x.globalEffects = x.globalEffects.addFirst(GlobalDirtEffect(\dirt_master_mix, [\masterGain, \gainControlLag]));
 	        x.initNodeTree;
         };
@@ -124,6 +125,7 @@ SuperDirtMixer {
 		var utilityUI =  UtilityUI.new(eventHandler, dirt.orbits, presetPath);
 		var equalizerUI = EqualizerUI.new(eventHandler, dirt.orbits);
 		var midiControlUI = MidiControlUI.new(switchControlButtonEvent);
+		var compressorUI = CompressorUI.new(eventHandler, dirt.orbits);
 
 		mixerUI.reverbVariableName = reverbVariableName;
 		mixerUI.reverbNativeSize = reverbNativeSize;
@@ -136,10 +138,16 @@ SuperDirtMixer {
 		window.layout_(
 			VLayout(
 				mixerUI.createUI,
+				30,
 				HLayout (
-					equalizerUI.equalizerComposite,
+					equalizerUI.createUI,
+					20,
+					compressorUI.createUI,
+					20,
 					midiControlUI.createUI,
+					20,
 					masterUI.createUI(this.prMasterBus),
+					20,
 					utilityUI.createUI
 				)
 			)

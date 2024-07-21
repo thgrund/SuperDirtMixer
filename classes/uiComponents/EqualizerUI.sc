@@ -1,10 +1,11 @@
-EqualizerUI {
+EqualizerUI : UIFactories{
 
 	var handler;
 	var orbits;
-	var eqView, <equalizerComposite, freqScope;
+	var eqView, freqScope;
 	var activeOrbit;
 	var defaultParentEvent;
+	var bypassButton;
 
 
     *new { |initHandler, initOrbits|
@@ -20,14 +21,24 @@ EqualizerUI {
 			\loPeakFreq, 250, \loPeakGain, 0, \loPeakRq, 1,
 			\midPeakFreq, 1000, \midPeakGain, 0, \midPeakRq, 1,
 			\hiPeakFreq, 3500, \hiPeakGain, 0, \hiPeakRq, 1,
-			\hiShelfFreq, 6000, \hiShelfGain, 0, \hiShelfRs, 1
+			\hiShelfFreq, 6000, \hiShelfGain, 0, \hiShelfRs, 1,
+			\activeEq, 1
 	    ];
 
 		if (handler.isNil.not, {
 			handler.subscribe(this, \setActiveOrbit);
 			handler.subscribe(this, \updateActiveOrbit);
 			handler.subscribe(this, \updateUI);
+
+			handler.emitEvent(\extendDefaultParentEvent, defaultParentEvent);
 		});
+
+		bypassButton = Button.new.string_("Bypass").maxWidth_(75);
+
+		bypassButton.action_({
+			this.setBypassButtonState(bypassButton, true, activeOrbit, \activeEq);
+		});
+
 
 		if (orbits.isNil.not, {
 
@@ -41,9 +52,9 @@ EqualizerUI {
 
 			this.setEQuiValues(activeOrbit);
 
+			this.setOrbits(defaultParentEvent);
 		});
 
-		handler.emitEvent(\extendDefaultParentEvent, defaultParentEvent);
 
 		this.addEqualizerListener;
 	}
@@ -58,6 +69,7 @@ EqualizerUI {
 			activeOrbit = eventData;
 
 			this.setEQuiValues(activeOrbit);
+			this.setBypassButtonState(bypassButton, false, activeOrbit, \activeEq);
 			freqScope.inBus = activeOrbit.dryBus;
 		});
 
@@ -67,6 +79,7 @@ EqualizerUI {
 			});
 
 			this.setEQuiValues(activeOrbit);
+			this.setBypassButtonState(bypassButton, false, activeOrbit, \activeEq);
 		});
 
 		if (eventName == \updateActiveOrbit, {
@@ -75,11 +88,11 @@ EqualizerUI {
     }
 
 	startEQEffect {
-		this.setOrbits(\activeEq,1);
+		this.setOrbits([\activeEq,1]);
 	}
 
 	stopEQEffect {
-		this.setOrbits(\activeEq,nil);
+		this.setOrbits([\activeEq,nil]);
 	}
 
 	setEQuiValues {|orbit|
@@ -101,7 +114,7 @@ EqualizerUI {
 			hiShelfRs: orbit.get(\hiShelfRs)
 		);
 
-		eqView.target = orbit.globalEffects[0].synth;
+		eqView.target = orbit.globalEffects[2].synth;
 
 	}
 
@@ -109,17 +122,16 @@ EqualizerUI {
 		orb.set(*eqView.value.asArgsArray);
 	}
 
-
-	setOrbits { |...pairs|
+	setOrbits { |pairs|
 		orbits.do(_.set(*pairs))
 	}
 
 	createUI {
 		var height = 450;
-		var width = 1200;
+		var width = 760;
 
 		/* DEFINE EQ GUI */
-		equalizerComposite = CompositeView.new;
+		var equalizerComposite = CompositeView.new;
 
 		equalizerComposite.minHeight_(height);
 		equalizerComposite.minWidth_(width);
@@ -134,9 +146,18 @@ EqualizerUI {
 		freqScope.fill = true;
         freqScope.inBus = orbits[0].dryBus;
 
-		eqView = EQui.new(equalizerComposite, equalizerComposite.bounds, orbits[0].globalEffects[0].synth);
+		eqView = EQui.new(equalizerComposite, equalizerComposite.bounds, orbits[0].globalEffects[2].synth);
 
-		this.startEQEffect;
+		this.setBypassButtonState(bypassButton, false, activeOrbit, \activeEq);
+
+		^VLayout(
+		    HLayout(
+			    bypassButton,
+			    StaticText.new.string_("Equalizer").fixedHeight_(15)
+		   )
+		   , equalizerComposite
+
+	    );
 	}
 
 	updateEQ {
