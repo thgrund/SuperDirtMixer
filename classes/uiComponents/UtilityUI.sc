@@ -32,8 +32,6 @@ UtilityUI {
 			}).maxWidth_(150);
 
 			presetListView.value = nil;
-			//this.loadPreset;
-			//presetFiles.do({|item,i| if (item.asSymbol == presetFile, {presetListView.value = i})});
 
 			this.addTidalvstPresetListener;
 			this.addLoadPresetListener;

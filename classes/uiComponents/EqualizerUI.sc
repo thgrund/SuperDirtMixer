@@ -56,7 +56,7 @@ EqualizerUI : UIFactories{
 		});
 
 
-		this.addEqualizerListener;
+		this.addRemoteControlListener;
 	}
 
 	handleEvent { |eventName, eventData|
@@ -172,7 +172,7 @@ EqualizerUI : UIFactories{
 	}
 
 
-	addEqualizerListener { OSCFunc ({|msg| {
+	addRemoteControlListener { OSCFunc ({|msg| {
 		var event = ();
 		var superDirtOSC = NetAddr("127.0.0.1", 57120);
 		var orbitIndex;
