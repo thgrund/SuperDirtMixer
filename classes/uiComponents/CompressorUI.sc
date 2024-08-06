@@ -10,6 +10,7 @@ CompressorUI : UIFactories {
 	var minThreshold;
 	var uiKnobFactories;
 	var comporessorView;
+	var globalEffects;
 
 	var width, height;
 
@@ -20,6 +21,8 @@ CompressorUI : UIFactories {
 	init { |initHandler, initOrbits|
 		handler = initHandler;
 		orbits = initOrbits;
+
+		globalEffects = GlobalEffects.new;
 
 		minThreshold = -60;
 		threshold = 0; // Threshold in dB
@@ -51,6 +54,8 @@ CompressorUI : UIFactories {
 
 		bypassButton.action_({
 			this.setBypassButtonState(bypassButton, true, activeOrbit, \activeCompressor);
+
+			this.updateGlobalEffect(activeOrbit);
 		});
 
 		compressorElements = Dictionary.new;
@@ -70,15 +75,26 @@ CompressorUI : UIFactories {
 			compressorElements[\gainReduction][\element].value = 1;
 			ampThreshold = -60;
 
-			this.updateCompressor();
+			this.updateCompressorUI();
 		});
 
 		if (eventName == \updateUI, {
-			this.updateCompressor();
+			orbits.do({|orbit| this.updateGlobalEffect(orbit)});
+
+			this.updateCompressorUI();
 		});
     }
 
-	updateCompressor {
+	updateGlobalEffect { |orbit|
+		if(orbit.get(\activeCompressor) == 1, {
+			globalEffects.addGlobalEffect(
+				orbit, GlobalDirtEffect(\dirt_global_compressor, [\activeCompressor, \cpAttack, \cpRelease, \cpThresh, \cpTrim, \cpGain, \cpRatio, \cpLookahead, \cpSaturate, \cpHpf, \cpKnee, \cpBias]), true);
+		}, {
+			globalEffects.releaseGlobalEffect(orbit, \dirt_global_compressor);
+		});
+	}
+
+	updateCompressorUI {
 			this.setBypassButtonState(bypassButton, false, activeOrbit, \activeCompressor);
 
 			compressorElements.keysValuesDo {|key, components|
@@ -94,6 +110,26 @@ CompressorUI : UIFactories {
 	setOrbits { |pairs|
 		orbits.do(_.set(*pairs))
 	}
+
+	/*prInitGlobalEffect { | orbit |
+		orbit.globalEffects = orbit.globalEffects.addFirst(GlobalDirtEffect(\dirt_global_compressor, [\activeCompressor, \cpAttack, \cpRelease, \cpThresh, \cpTrim, \cpGain, \cpRatio, \cpLookahead, \cpSaturate, \cpHpf, \cpKnee, \cpBias]));
+	    orbit.initNodeTree;
+	}
+
+	prReleaseGlobalEffect { | orbit |
+		orbit.globalEffects.do({
+			|effect, index|
+			var removeIndex;
+			if(effect.name == \dirt_global_compressor, {
+				removeIndex = index;
+			});
+
+			if (removeIndex.isNil.not, {
+				orbit.globalEffects[removeIndex].synth.free;
+				orbit.globalEffects.removeAt(removeIndex);
+			});
+		});
+	}*/
 
 	// Function to draw the grid
 	drawGrid {
@@ -415,7 +451,7 @@ CompressorUI : UIFactories {
 				orbits.at(orbitIndex).defaultParentEvent.put(item.asSymbol, event.at(item.asSymbol));
 
 				if (activeOrbit.isNil.not, {
-					this.updateCompressor();
+					this.updateCompressorUI();
 				})
 			});
 		});

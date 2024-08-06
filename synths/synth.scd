@@ -18,9 +18,8 @@ SynthDef("dirt_global_eq" ++ numChannels, { |out, dryBus, effectBus, gate = 1, a
 
 	}, [\ir]).add;
 
-	// Adapted from
+	// Adapted from// https://github.com/alikthename/Musical-Design-in-Supercollider
 	// https://www.youtube.com/watch?v=CAJXgJpQuSM&list=PLXCUkMwOEWQtB-leHHSexTizzcACdozp9&index=16
-	// https://github.com/alikthename/Musical-Design-in-Supercollider
 SynthDef("dirt_global_compressor" ++ numChannels, { |out, dryBus, effectBus, gate = 1, orbitIndex,
 	cpAttack=0.01, cpRelease=0.1, cpThresh= -6, cpTrim=0, cpGain=0, cpRatio=4,
 	cpLookahead=0, cpSaturate=1, cpHpf=50, cpKnee=0, cpBias=0 , activeCompressor = 0|
@@ -50,14 +49,15 @@ SynthDef("dirt_global_compressor" ++ numChannels, { |out, dryBus, effectBus, gat
 	cpLookaheadDelay = DelayC.ar(in, 0.5, (cpAttack + cpRelease + cpKneelag * cpLookahead).lag(0.4));
 
 	compressedSound = cpLookaheadDelay * gainReduction;
-	in = compressedSound * cpGain.dbamp * activeCompressor;
+	in = compressedSound * cpGain.dbamp;
 
 	in = Select.ar(cpSaturate, [in, (in + K2A.ar(cpBias)).softclip - cpBias]);
 	in = LeakDC.ar(in);
 
-	DirtPause.ar(dry, graceTime: 1 * activeCompressor);
 
 	in = in * env;
+	DirtPause.ar(in, graceTime: 4);
+
 	//SendReply.kr(Impulse.kr(4), '/compressor', [dryAmplitude, gainReduction, orbitIndex]);
 	SendPeakRMS.kr(dry, replyRate: 16, peakLag: 3, cmdName:"/cpInRms", replyID: orbitIndex);
 	SendPeakRMS.kr(compressedSound, replyRate: 16, peakLag: 3, cmdName:"/cpCompressedRms", replyID: orbitIndex);

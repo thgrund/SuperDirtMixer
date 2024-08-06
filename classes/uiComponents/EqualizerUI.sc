@@ -6,13 +6,15 @@ EqualizerUI : UIFactories{
 	var activeOrbit;
 	var defaultParentEvent;
 	var bypassButton;
-
+	var globalEffects;
 
     *new { |initHandler, initOrbits|
         ^super.new.init(initHandler, initOrbits);
     }
 
 	init { |initHandler, initOrbits|
+		globalEffects = GlobalEffects.new;
+
 		handler = initHandler;
 		orbits = initOrbits;
 
@@ -37,8 +39,8 @@ EqualizerUI : UIFactories{
 
 		bypassButton.action_({
 			this.setBypassButtonState(bypassButton, true, activeOrbit, \activeEq);
+			this.updateGlobalEffect(activeOrbit);
 		});
-
 
 		if (orbits.isNil.not, {
 
@@ -53,8 +55,9 @@ EqualizerUI : UIFactories{
 			this.setEQuiValues(activeOrbit);
 
 			this.setOrbits(defaultParentEvent);
-		});
 
+			this.prInitGlobalEffect;
+		});
 
 		this.addRemoteControlListener;
 	}
@@ -75,6 +78,7 @@ EqualizerUI : UIFactories{
 
 		if (eventName == \updateUI, {
 			orbits.do({|orbit|
+				this.updateGlobalEffect(orbit);
 				this.setEQuiValues(orbit);
 			});
 
@@ -86,6 +90,22 @@ EqualizerUI : UIFactories{
 			this.setOrbitEQValues(activeOrbit);
 		});
     }
+
+	prInitGlobalEffect {
+		orbits.do { |orbit|
+			globalEffects.addGlobalEffect(orbit, GlobalDirtEffect(\dirt_global_eq, [\activeEq]))
+		};
+	}
+
+
+	updateGlobalEffect { |orbit|
+		if(orbit.get(\activeEq) == 1, {
+			globalEffects.addGlobalEffect(
+				orbit, GlobalDirtEffect(\dirt_global_eq, [\activeEq]), true);
+		}, {
+			globalEffects.releaseGlobalEffect(orbit, \dirt_global_eq);
+		});
+	}
 
 	startEQEffect {
 		this.setOrbits([\activeEq,1]);

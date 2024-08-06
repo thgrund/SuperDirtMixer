@@ -48,12 +48,10 @@ SuperDirtMixer {
 	}
 
 	prInitGlobalEffect {
-		dirt.orbits.do { |x|
-			x.globalEffects = x.globalEffects.addFirst(GlobalDirtEffect(\dirt_global_eq, [\activeEq]));
-			x.globalEffects = x.globalEffects.addFirst(GlobalDirtEffect(\dirt_global_compressor, [\activeCompressor, \cpAttack, \cpRelease, \cpThresh, \cpTrim, \cpGain, \cpRatio, \cpLookahead, \cpSaturate, \cpHpf, \cpKnee, \cpBias]));
-			x.globalEffects = x.globalEffects.addFirst(GlobalDirtEffect(\dirt_master_mix, [\masterGain, \gainControlLag]));
-	        x.initNodeTree;
-        };
+		var globalEffects = GlobalEffects.new;
+		dirt.orbits.do { |orbit|
+				globalEffects.addGlobalEffect(orbit, GlobalDirtEffect(\dirt_master_mix, [\masterGain, \gainControlLag]));
+		};
 	}
 
 	setOrbitLabels {
