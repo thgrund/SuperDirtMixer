@@ -38,11 +38,14 @@ EqualizerUI : UIFactories{
 		bypassButton = Button.new.string_("Bypass").maxWidth_(75);
 
 		bypassButton.action_({
+			this.setOrbitEQValues(activeOrbit);
 			this.setBypassButtonState(bypassButton, true, activeOrbit, \activeEq);
 			this.updateGlobalEffect(activeOrbit);
+			this.setEQuiValues(activeOrbit);
 		});
 
 		if (orbits.isNil.not, {
+			this.prInitGlobalEffect;
 
 			this.createUI();
 
@@ -52,11 +55,10 @@ EqualizerUI : UIFactories{
 
 			activeOrbit = orbits[0];
 
-			this.setEQuiValues(activeOrbit);
 
 			this.setOrbits(defaultParentEvent);
 
-			this.prInitGlobalEffect;
+			this.setEQuiValues(activeOrbit);
 		});
 
 		this.addRemoteControlListener;
@@ -97,11 +99,15 @@ EqualizerUI : UIFactories{
 		};
 	}
 
+	searchForEffectSynth { | orbit |
+		var effect = orbit.globalEffects.detect({| effect | effect.name.asSymbol == \dirt_global_eq.asSymbol; });
+		^effect;
+	}
 
 	updateGlobalEffect { |orbit|
 		if(orbit.get(\activeEq) == 1, {
 			globalEffects.addGlobalEffect(
-				orbit, GlobalDirtEffect(\dirt_global_eq, [\activeEq]), true);
+				orbit, GlobalDirtEffect(\dirt_global_eq, [\activeEq]));
 		}, {
 			globalEffects.releaseGlobalEffect(orbit, \dirt_global_eq);
 		});
@@ -116,26 +122,27 @@ EqualizerUI : UIFactories{
 	}
 
 	setEQuiValues {|orbit|
-		eqView.value = EQuiParams.new(
-			loShelfFreq: orbit.get(\loShelfFreq),
-			loShelfGain: orbit.get(\loShelfGain),
-			loShelfRs: orbit.get(\loShelfRs),
-			loPeakFreq:  orbit.get(\loPeakFreq),
-			loPeakGain: orbit.get(\loPeakGain),
-			loPeakRq: orbit.get(\loPeakRq),
-			midPeakFreq: orbit.get(\midPeakFreq),
-			midPeakGain: orbit.get(\midPeakGain),
-			midPeakRq: orbit.get(\midPeakRq),
-			hiPeakFreq: orbit.get(\hiPeakFreq),
-			hiPeakGain: orbit.get(\hiPeakGain),
-			hiPeakRq: orbit.get(\hiPeakRq),
-			hiShelfFreq: orbit.get(\hiShelfFreq),
-			hiShelfGain: orbit.get(\hiShelfGain),
-			hiShelfRs: orbit.get(\hiShelfRs)
-		);
+		var effect = this.searchForEffectSynth(orbit);
 
-		eqView.target = orbit.globalEffects[2].synth;
+			eqView.value = EQuiParams.new(
+				loShelfFreq: orbit.get(\loShelfFreq),
+				loShelfGain: orbit.get(\loShelfGain),
+				loShelfRs: orbit.get(\loShelfRs),
+				loPeakFreq:  orbit.get(\loPeakFreq),
+				loPeakGain: orbit.get(\loPeakGain),
+				loPeakRq: orbit.get(\loPeakRq),
+				midPeakFreq: orbit.get(\midPeakFreq),
+				midPeakGain: orbit.get(\midPeakGain),
+				midPeakRq: orbit.get(\midPeakRq),
+				hiPeakFreq: orbit.get(\hiPeakFreq),
+				hiPeakGain: orbit.get(\hiPeakGain),
+				hiPeakRq: orbit.get(\hiPeakRq),
+				hiShelfFreq: orbit.get(\hiShelfFreq),
+				hiShelfGain: orbit.get(\hiShelfGain),
+				hiShelfRs: orbit.get(\hiShelfRs)
+			);
 
+		if (effect.isNil.not, {eqView.target = effect.synth});
 	}
 
 	setOrbitEQValues {|orb|
@@ -166,7 +173,7 @@ EqualizerUI : UIFactories{
 		freqScope.fill = true;
         freqScope.inBus = orbits[0].dryBus;
 
-		eqView = EQui.new(equalizerComposite, equalizerComposite.bounds, orbits[0].globalEffects[2].synth);
+		eqView = EQui.new(equalizerComposite, equalizerComposite.bounds, this.searchForEffectSynth(orbits[0]).synth);
 
 		this.setBypassButtonState(bypassButton, false, activeOrbit, \activeEq);
 

@@ -44,19 +44,26 @@ GlobalEffects {
 		orbit.globalEffects.sort(sortFunction);
 	}
 
-	addGlobalEffect { | orbit, globalDirtEffect, shouldInitNodeTree = false|
-		var isIncluded = orbit.globalEffects.detect({| effect |
+	addGlobalEffect { | orbit, globalDirtEffect, nodeShouldBeAdded = true|
+		var isNotIncluded = orbit.globalEffects.detect({| effect |
 			effect.name.asSymbol == globalDirtEffect.name.asSymbol;
-		});
+		}).isNil;
 
-		if (isIncluded.isNil, {
+		if (isNotIncluded, {
 			orbit.globalEffects = orbit.globalEffects.addFirst(globalDirtEffect);
 
-			this.sortGlobalEffects(orbit);
+			if (nodeShouldBeAdded == true, {
+				globalDirtEffect.play(
+					orbit.group, orbit.outBus, orbit.dryBus, orbit.globalEffectBus, orbit.orbitIndex
+				);
+				this.sortGlobalEffects(orbit);
 
-			if (shouldInitNodeTree, {
-				orbit.globalEffects.do({|effect| effect.synth.free });
-				orbit.initNodeTree;
+				if (~dirt.isNil.not, {
+					orbit.globalEffects.reverseDo({|effect|
+						~dirt.server.sendMsg("/n_after", effect.synth.nodeID, orbit.group)
+					});
+				});
+
 			});
 		});
 	}

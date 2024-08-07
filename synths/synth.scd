@@ -2,7 +2,7 @@
 {
 var numChannels = ~dirt.numChannels;
 
-SynthDef("dirt_global_eq" ++ numChannels, { |out, dryBus, effectBus, gate = 1, activeEq|
+SynthDef("dirt_global_eq" ++ numChannels, { |out, dryBus, effectBus, gate = 1|
 		var sound;
 		var in = In.ar(dryBus, numChannels);
 		var env = EnvGen.kr(Env.asr, gate, doneAction:2);
@@ -10,7 +10,7 @@ SynthDef("dirt_global_eq" ++ numChannels, { |out, dryBus, effectBus, gate = 1, a
 		// Dry/Wet
 		// TODO: disable if no value was received
 		sound = in.equi;
-		DirtPause.ar(sound, graceTime: 1 * activeEq);
+		DirtPause.ar(sound, graceTime: 4);
 
 		sound = sound * env;
 

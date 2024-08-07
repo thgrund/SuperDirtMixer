@@ -37,6 +37,7 @@ SuperDirtMixer {
 			eventHandler = EventHandler.new;
 
 			this.prInitGlobalEffect;
+			dirt.startSendRMS;
 
 			dirt.orbits.do({
 				|orbit, i|
@@ -50,7 +51,7 @@ SuperDirtMixer {
 	prInitGlobalEffect {
 		var globalEffects = GlobalEffects.new;
 		dirt.orbits.do { |orbit|
-				globalEffects.addGlobalEffect(orbit, GlobalDirtEffect(\dirt_master_mix, [\masterGain, \gainControlLag]));
+				globalEffects.addGlobalEffect(orbit, GlobalDirtEffect(\dirt_master_mix, [\masterGain, \gainControlLag]), false);
 		};
 	}
 
@@ -129,7 +130,6 @@ SuperDirtMixer {
 		mixerUI.reverbNativeSize = reverbNativeSize;
 
 		/* INIT GUI COMPONENTS */
-        dirt.startSendRMS;
 
 		// Create a window
 		window = Window.new("Mixer", Rect(0,0,300,1000), scroll: true);

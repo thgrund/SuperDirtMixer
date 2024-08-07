@@ -53,9 +53,13 @@ CompressorUI : UIFactories {
 		bypassButton = Button.new.string_("Bypass").maxWidth_(75);
 
 		bypassButton.action_({
+			handler.emitEvent(\updateActiveOrbit);
+
 			this.setBypassButtonState(bypassButton, true, activeOrbit, \activeCompressor);
 
 			this.updateGlobalEffect(activeOrbit);
+
+			handler.emitEvent(\updateUI);
 		});
 
 		compressorElements = Dictionary.new;
@@ -88,7 +92,7 @@ CompressorUI : UIFactories {
 	updateGlobalEffect { |orbit|
 		if(orbit.get(\activeCompressor) == 1, {
 			globalEffects.addGlobalEffect(
-				orbit, GlobalDirtEffect(\dirt_global_compressor, [\activeCompressor, \cpAttack, \cpRelease, \cpThresh, \cpTrim, \cpGain, \cpRatio, \cpLookahead, \cpSaturate, \cpHpf, \cpKnee, \cpBias]), true);
+				orbit, GlobalDirtEffect(\dirt_global_compressor, [\activeCompressor, \cpAttack, \cpRelease, \cpThresh, \cpTrim, \cpGain, \cpRatio, \cpLookahead, \cpSaturate, \cpHpf, \cpKnee, \cpBias]));
 		}, {
 			globalEffects.releaseGlobalEffect(orbit, \dirt_global_compressor);
 		});
