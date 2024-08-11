@@ -92,6 +92,11 @@ EqualizerUI : UIFactories{
 
 			this.setEQuiValues(activeOrbit);
 			this.setBypassButtonState(bypassButton, false, activeOrbit, \activeEq);
+
+			equalizerElements.keysValuesDo({
+				|key, value|
+				this.setEmptyButtonState(value[\element], false, activeOrbit, key);
+			});
 		});
 
 		if (eventName == \updateActiveOrbit, {

@@ -62,6 +62,11 @@ UtilityUI {
 
 	    defaultEvents.do({
 		     arg defaultEvent, index;
+
+			defaultParentEvents.keysValuesDo({|key, val|
+				if (defaultEvent.keys.includes(key) == false, {defaultEvent.put(key, val)})
+			});
+
 			 orbits[index].set(*defaultEvent.asPairs);
         });
 
