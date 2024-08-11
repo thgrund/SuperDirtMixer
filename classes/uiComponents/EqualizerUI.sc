@@ -6,6 +6,7 @@ EqualizerUI : UIFactories{
 	var activeOrbit;
 	var defaultParentEvent;
 	var bypassButton;
+	var equalizerElements;
 	var globalEffects;
 
     *new { |initHandler, initOrbits|
@@ -19,12 +20,7 @@ EqualizerUI : UIFactories{
 		orbits = initOrbits;
 
 		defaultParentEvent = [
-		    \loShelfFreq, 100, \loShelfGain, 0, \loShelfRs, 1,
-			\loPeakFreq, 250, \loPeakGain, 0, \loPeakRq, 1,
-			\midPeakFreq, 1000, \midPeakGain, 0, \midPeakRq, 1,
-			\hiPeakFreq, 3500, \hiPeakGain, 0, \hiPeakRq, 1,
-			\hiShelfFreq, 6000, \hiShelfGain, 0, \hiShelfRs, 1,
-			\activeEq, 1
+		    \hiPassFreq , 100, \hiPassGain , 0, \hiPassRq , 1.4, \hiPassBypass , 1, \loShelfFreq , 150, \loShelfGain, 0, \loShelfRs, 1, \loShelfBypass, 0, \loPeakFreq , 250, \loPeakGain , 0, \loPeakRq , 1, \loPeakBypass , 0, \midPeakFreq , 1000, \midPeakGain , 0, \midPeakRq , 1, \midPeakBypass , 0, \hiPeakFreq , 3500, \hiPeakGain , 0, \hiPeakRq , 1, \hiPeakBypass , 0, \hiShelfFreq , 6000, \hiShelfGain , 0, \hiShelfRs , 1, \hiShelfBypass , 0, \loPassFreq , 8000, \loPassGain , 0, \loPassRq , 1.4, \loPassBypass, 1, \activeEq, 1
 	    ];
 
 		if (handler.isNil.not, {
@@ -35,6 +31,8 @@ EqualizerUI : UIFactories{
 			handler.emitEvent(\extendDefaultParentEvent, defaultParentEvent);
 		});
 
+		equalizerElements = Dictionary.new;
+
 		bypassButton = Button.new.string_("Bypass").maxWidth_(75);
 
 		bypassButton.action_({
@@ -43,6 +41,7 @@ EqualizerUI : UIFactories{
 			this.updateGlobalEffect(activeOrbit);
 			this.setEQuiValues(activeOrbit);
 		});
+
 
 		if (orbits.isNil.not, {
 			this.prInitGlobalEffect;
@@ -61,6 +60,7 @@ EqualizerUI : UIFactories{
 			this.setEQuiValues(activeOrbit);
 		});
 
+
 		this.addRemoteControlListener;
 	}
 
@@ -75,6 +75,12 @@ EqualizerUI : UIFactories{
 
 			this.setEQuiValues(activeOrbit);
 			this.setBypassButtonState(bypassButton, false, activeOrbit, \activeEq);
+
+			equalizerElements.keysValuesDo({
+				|key, value|
+				this.setEmptyButtonState(value[\element], false, activeOrbit, key);
+			});
+
 			freqScope.inBus = activeOrbit.dryBus;
 		});
 
@@ -125,21 +131,32 @@ EqualizerUI : UIFactories{
 		var effect = this.searchForEffectSynth(orbit);
 
 			eqView.value = EQuiParams.new(
+				hiPassFreq: orbit.get(\hiPassFreq),
+				hiPassRq: orbit.get(\hiPassRq),
+				hiPassBypass: orbit.get(\hiPassBypass),
 				loShelfFreq: orbit.get(\loShelfFreq),
 				loShelfGain: orbit.get(\loShelfGain),
 				loShelfRs: orbit.get(\loShelfRs),
+				loShelfBypass: orbit.get(\loShelfBypass),
 				loPeakFreq:  orbit.get(\loPeakFreq),
 				loPeakGain: orbit.get(\loPeakGain),
 				loPeakRq: orbit.get(\loPeakRq),
+				loPeakBypass: orbit.get(\loPeakBypass),
 				midPeakFreq: orbit.get(\midPeakFreq),
 				midPeakGain: orbit.get(\midPeakGain),
 				midPeakRq: orbit.get(\midPeakRq),
+				midPeakBypass: orbit.get(\midPeakBypass),
 				hiPeakFreq: orbit.get(\hiPeakFreq),
 				hiPeakGain: orbit.get(\hiPeakGain),
 				hiPeakRq: orbit.get(\hiPeakRq),
+			    hiPeakBypass: orbit.get(\hiPeakBypass),
 				hiShelfFreq: orbit.get(\hiShelfFreq),
 				hiShelfGain: orbit.get(\hiShelfGain),
-				hiShelfRs: orbit.get(\hiShelfRs)
+				hiShelfRs: orbit.get(\hiShelfRs),
+				hiShelfBypass: orbit.get(\hiShelfBypass),
+				loPassFreq: orbit.get(\loPassFreq),
+				loPassRq: orbit.get(\loPassRq),
+				loPassBypass: orbit.get(\loPassBypass),
 			);
 
 		if (effect.isNil.not, {eqView.target = effect.synth});
@@ -177,13 +194,30 @@ EqualizerUI : UIFactories{
 
 		this.setBypassButtonState(bypassButton, false, activeOrbit, \activeEq);
 
+		this.eqFilterButtonFactory(\hiPassBypass, "../../assets/images/highPass.svg".resolveRelative);
+		this.eqFilterButtonFactory(\loShelfBypass, "../../assets/images/lowShelf.svg".resolveRelative);
+		this.eqFilterButtonFactory(\loPeakBypass, "../../assets/images/peak.svg".resolveRelative);
+		this.eqFilterButtonFactory(\midPeakBypass, "../../assets/images/peak.svg".resolveRelative);
+		this.eqFilterButtonFactory(\hiPeakBypass, "../../assets/images/peak.svg".resolveRelative);
+		this.eqFilterButtonFactory(\hiShelfBypass, "../../assets/images/highShelf.svg".resolveRelative );
+		this.eqFilterButtonFactory(\loPassBypass, "../../assets/images/lowPass.svg".resolveRelative);
+
+
 		^VLayout(
 		    HLayout(
 			    bypassButton,
-			    StaticText.new.string_("Equalizer").fixedHeight_(15)
+			    StaticText.new.string_("Equalizer").fixedHeight_(15),
 		   )
 		   , equalizerComposite
-
+		   , HLayout(
+				[equalizerElements[\hiPassBypass][\element]],
+				[equalizerElements[\loShelfBypass][\element]],
+				[equalizerElements[\loPeakBypass][\element]],
+				[equalizerElements[\midPeakBypass][\element]],
+				[equalizerElements[\hiPeakBypass][\element]],
+				[equalizerElements[\hiShelfBypass][\element]],
+				[equalizerElements[\loPassBypass][\element]],
+			);
 	    );
 	}
 
@@ -196,6 +230,21 @@ EqualizerUI : UIFactories{
 			this.setEQuiValues(activeOrbit);
 		});
 
+	}
+
+	eqFilterButtonFactory {
+		|property, icon|
+			equalizerElements.put(property, Dictionary.newFrom([\element,
+			(Button()
+				.icon_(Image.openSVG(icon, 50@50))
+				.action_({
+					this.setOrbitEQValues(activeOrbit);
+					this.setEmptyButtonState(equalizerElements[property][\element], true, activeOrbit, property);
+					this.setEQuiValues(activeOrbit);
+				})
+			)
+		    ]));
+			this.setEmptyButtonState(equalizerElements[property][\element], false, activeOrbit, property);
 	}
 
 

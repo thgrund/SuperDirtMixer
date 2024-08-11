@@ -32,5 +32,24 @@ UIFactories {
 		});
 	}
 
+	setEmptyButtonState {
+		| button, shouldToggle, activeOrbit, property |
 
+		if (shouldToggle == true, {
+			if (activeOrbit.get(property) == 1, {
+				button.states_([["", Color.white, Color.new255(238, 180, 34)]]);
+				activeOrbit.set(property, 0);
+
+			}, {
+				button.states_([["", Color.black, Color.white]]);
+				activeOrbit.set(property, 1);
+			});
+		}, {
+			if (activeOrbit.get(property) == 1, {
+				button.states_([["", Color.black, Color.white]]);
+			}, {
+				button.states_([["", Color.white, Color.new255(238, 180, 34)]]);
+			});
+		});
+	}
 }
