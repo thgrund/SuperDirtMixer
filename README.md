@@ -15,17 +15,32 @@ For the EQ of an orbit, this plugin is using EQui (https://github.com/thgrund/EQ
 
 ### Mixer
 
+- Level indicators for each SuperDirt orbit to monitor the loudness of each signal.
+- Adjustable controls for panning, master gain, and reverb amount.
+- Mute and solo options for individual orbits.
+
 ### Equalizer
 
-- Five different filter types (high pass, low shelf, 3x peak, high shelf and low pass filter)
-- Graphical representation of the applied filter as frequency curves
-- Toggleable filter buttons. You can enable and disable all available filter
+- Five different filter types: high pass, low shelf, 3x peak, high shelf, and low pass filters.
+- Graphical representation of the applied filters as frequency curves.
+- Toggleable filter buttons to enable and disable all available filters.
 
 ### Dynamic Range Compressor
 
+- A fully functional digital dynamic range compressor with standard parameters such as threshold, ratio, attack, release, and gain.
+- Graphical representation of the amplitude values, threshold, and ratio of the compressor.
+- Visual feedback for gain reduction.
+
 ### Stage Master
 
+- User interface for a light mastering chain based on [StageMaster](https://github.com/calumgunn/StageMaster).
+- Off by default but can be activated for live use.
+
 ### Preset Management
+
+- Save and load presets.
+- Files are stored in plain JSON format.
+- Reset all parameters to their default values.
 
 ## How to install it
 
