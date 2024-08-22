@@ -46,6 +46,7 @@ CompressorUI : UIFactories {
 		if (handler.isNil.not, {
 			handler.subscribe(this, \setActiveOrbit);
 			handler.subscribe(this, \updateUI);
+			handler.subscribe(this, \resetAll);
 
 			handler.emitEvent(\extendDefaultParentEvent, defaultParentEvent);
 		});
@@ -87,6 +88,11 @@ CompressorUI : UIFactories {
 
 			this.updateCompressorUI();
 		});
+
+		if (eventName == \resetAll, {
+			this.setOrbits(defaultParentEvent);
+			this.updateCompressorUI();
+		});
     }
 
 	updateGlobalEffect { |orbit|
@@ -105,6 +111,12 @@ CompressorUI : UIFactories {
 				if (activeOrbit.get(key).isNil.not, {
 					components[\element].valueAction =
 					    components[\orbitToKnobValue].value(activeOrbit.get(key));
+
+				   if (activeOrbit.get(\activeCompressor) == 1, {
+					  components[\element].enabled = true;
+			       }, {
+					  components[\element].enabled = false;
+				   });
 				});
 			};
 
@@ -114,26 +126,6 @@ CompressorUI : UIFactories {
 	setOrbits { |pairs|
 		orbits.do(_.set(*pairs))
 	}
-
-	/*prInitGlobalEffect { | orbit |
-		orbit.globalEffects = orbit.globalEffects.addFirst(GlobalDirtEffect(\dirt_global_compressor, [\activeCompressor, \cpAttack, \cpRelease, \cpThresh, \cpTrim, \cpGain, \cpRatio, \cpLookahead, \cpSaturate, \cpHpf, \cpKnee, \cpBias]));
-	    orbit.initNodeTree;
-	}
-
-	prReleaseGlobalEffect { | orbit |
-		orbit.globalEffects.do({
-			|effect, index|
-			var removeIndex;
-			if(effect.name == \dirt_global_compressor, {
-				removeIndex = index;
-			});
-
-			if (removeIndex.isNil.not, {
-				orbit.globalEffects[removeIndex].synth.free;
-				orbit.globalEffects.removeAt(removeIndex);
-			});
-		});
-	}*/
 
 	// Function to draw the grid
 	drawGrid {
@@ -368,7 +360,7 @@ CompressorUI : UIFactories {
 			"%Freq"
 		);
 
-		comporessorView.refresh;
+		this.updateCompressorUI();
 
 		^VLayout(
 			HLayout(bypassButton, StaticText.new.string_("Compressor").fixedHeight_(15))
@@ -442,23 +434,26 @@ CompressorUI : UIFactories {
 		var event = ();
 		var superDirtOSC = NetAddr("127.0.0.1", 57120);
 		var orbitIndex;
-		var compressorParams = defaultParentEvent.keys;
+		var compressorParams = defaultParentEvent.asDict.keys;
 
 		event.putPairs(msg[1..]);
 
 		orbitIndex = event.at(\orbit);
 
-		compressorParams.do({
+		if (orbits.at(orbitIndex).get(\activeCompressor) == 1, {
+			compressorParams.do({
 			arg item;
 
-			if (event.at(item.asSymbol).isNil.not, {
-				orbits.at(orbitIndex).defaultParentEvent.put(item.asSymbol, event.at(item.asSymbol));
+				if (event.at(item.asSymbol).isNil.not, {
+					orbits.at(orbitIndex).set(item.asSymbol, event.at(item.asSymbol));
 
-				if (activeOrbit.isNil.not, {
-					this.updateCompressorUI();
-				})
+					if (activeOrbit.isNil.not && activeOrbit.orbitIndex == orbitIndex, {
+						this.updateCompressorUI();
+					})
+				});
 			});
 		});
+
 
 	}.defer;
 	}, ("/SuperDirtMixer"), recvPort: 57121).fix;

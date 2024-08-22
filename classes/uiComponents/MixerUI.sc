@@ -41,6 +41,7 @@ MixerUI : UIFactories {
 		this.addPanListener;
 		this.addGainListener;
 		this.addReverbListener;
+		this.addRemoteControlListener;
     }
 
 	handleEvent { |eventName, eventData|
@@ -58,7 +59,7 @@ MixerUI : UIFactories {
 			orbits.do({|item|
 				guiElements[item.orbitIndex][\pan][\element].value_(0.5);
 				guiElements[item.orbitIndex][\pan][\value].value_(0.5);
-				guiElements[item.orbitIndex][\masterGain][\element].value_(1/2);
+				guiElements[item.orbitIndex][\masterGain][\element].value_(2.explin(1,3,0,1));
 				guiElements[item.orbitIndex][\masterGain][\value].value_(1.0);
 				guiElements[item.orbitIndex][\reverb][\element].value_(0.0);
             });
@@ -255,4 +256,38 @@ MixerUI : UIFactories {
 			}.defer;
 	    }, ("/SuperDirtMixer/reverb"), recvPort: 57120).fix;
     }
+
+	addRemoteControlListener { OSCFunc ({|msg| {
+		var event = ();
+		var superDirtOSC = NetAddr("127.0.0.1", 57120);
+		var orbitIndex;
+
+		event.putPairs(msg[1..]);
+
+		orbitIndex = event.at(\orbit);
+
+		if ((orbits.at(orbitIndex).isNil).not, {
+			if (event.at(reverbVariableName).isNil.not, {
+				orbits.at(orbitIndex).set(reverbVariableName, event.at(reverbVariableName).linlin(0,1,0,1.0));
+				guiElements[orbitIndex][\reverb][\element].value_(orbits.at(orbitIndex).get(reverbVariableName));
+			});
+
+			if (event.at(\pan).isNil.not, {
+				orbits.at(orbitIndex).set(\pan, event.at(\pan).linlin(0,1,0,1.0));
+				guiElements[orbitIndex][\pan][\element].value_(orbits.at(orbitIndex).get(\pan));
+			    guiElements[orbitIndex][\pan][\value].value_(orbits.at(orbitIndex).get(\pan));
+			});
+
+			if (event.at(\masterGain).isNil.not, {
+			    orbits.at(orbitIndex).set(\masterGain, event.at(\masterGain).linlin(0,2,0,2));
+				guiElements[orbitIndex][\masterGain][\element].value_((orbits.at(orbitIndex).get(\masterGain) + 1).explin(1,3, 0,1));
+				guiElements[orbitIndex][\masterGain][\value].value_(orbits.at(orbitIndex).get(\masterGain));
+			});
+
+		});
+
+	}.defer;
+	}, ("/SuperDirtMixer"), recvPort: 57121).fix;
+	}
+
 }

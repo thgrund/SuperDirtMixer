@@ -27,6 +27,7 @@ EqualizerUI : UIFactories{
 			handler.subscribe(this, \setActiveOrbit);
 			handler.subscribe(this, \updateActiveOrbit);
 			handler.subscribe(this, \updateUI);
+			handler.subscribe(this, \resetAll);
 
 			handler.emitEvent(\extendDefaultParentEvent, defaultParentEvent);
 		});
@@ -36,10 +37,18 @@ EqualizerUI : UIFactories{
 		bypassButton = Button.new.string_("Bypass").maxWidth_(75);
 
 		bypassButton.action_({
-			this.setOrbitEQValues(activeOrbit);
 			this.setBypassButtonState(bypassButton, true, activeOrbit, \activeEq);
-			this.updateGlobalEffect(activeOrbit);
-			this.setEQuiValues(activeOrbit);
+
+			if (activeOrbit.get(\activeEq) == 1, {
+				this.updateGlobalEffect(activeOrbit);
+				this.enableButtons(true);
+				this.setEQuiValues(activeOrbit);
+			}, {
+				this.setOrbitEQValues(activeOrbit);
+				this.disableUI();
+				this.updateGlobalEffect(activeOrbit);
+			});
+
 		});
 
 
@@ -56,7 +65,6 @@ EqualizerUI : UIFactories{
 
 
 			this.setOrbits(defaultParentEvent);
-
 			this.setEQuiValues(activeOrbit);
 		});
 
@@ -76,6 +84,12 @@ EqualizerUI : UIFactories{
 			this.setEQuiValues(activeOrbit);
 			this.setBypassButtonState(bypassButton, false, activeOrbit, \activeEq);
 
+			if (activeOrbit.get(\activeEq) == 1, {
+				this.enableButtons(true);
+			}, {
+				this.disableUI();
+			});
+
 			equalizerElements.keysValuesDo({
 				|key, value|
 				this.setEmptyButtonState(value[\element], false, activeOrbit, key);
@@ -93,6 +107,12 @@ EqualizerUI : UIFactories{
 			this.setEQuiValues(activeOrbit);
 			this.setBypassButtonState(bypassButton, false, activeOrbit, \activeEq);
 
+			if (activeOrbit.get(\activeEq) == 1, {
+				this.enableButtons(true);
+			}, {
+				this.disableUI();
+			});
+
 			equalizerElements.keysValuesDo({
 				|key, value|
 				this.setEmptyButtonState(value[\element], false, activeOrbit, key);
@@ -101,6 +121,19 @@ EqualizerUI : UIFactories{
 
 		if (eventName == \updateActiveOrbit, {
 			this.setOrbitEQValues(activeOrbit);
+		});
+
+		if (eventName == \resetAll, {
+			this.setOrbits(defaultParentEvent);
+
+			orbits.do({|orbit|
+				this.setEQuiValues(orbit);
+			});
+
+			equalizerElements.keysValuesDo({
+				|key, value|
+				this.setEmptyButtonState(value[\element], false, activeOrbit, key);
+			});
 		});
     }
 
@@ -164,11 +197,48 @@ EqualizerUI : UIFactories{
 				loPassBypass: orbit.get(\loPassBypass),
 			);
 
+
 		if (effect.isNil.not, {eqView.target = effect.synth});
 	}
 
+	disableUI {
+		var p = eqView.value;
+		var effect = this.searchForEffectSynth(activeOrbit);
+
+		p.hiPassBypass = 1;
+		p.loShelfBypass = 1;
+		p.loPeakBypass = 1;
+		p.midPeakBypass = 1;
+		p.hiPeakBypass = 1;
+		p.hiShelfBypass = 1;
+		p.loPassBypass = 1;
+
+		eqView.valueAction = p; // reset to params stored in p, and update target
+
+		if (effect.isNil.not, {eqView.target = effect.synth});
+
+		this.enableButtons(false);
+	}
+
+	enableButtons {
+		|enable|
+		equalizerElements.do({|buttonMap|
+			buttonMap[\element].enabled = enable
+		});
+	}
+
 	setOrbitEQValues {|orb|
+		var bypassValues = Array.with(\hiPassBypass, orb.get(\hiPassBypass)
+			, \loShelfBypass, orb.get(\loShelfBypass)
+			, \loPeakBypass, orb.get(\loPeakBypass)
+			, \midPeakBypass, orb.get(\midPeakBypass)
+			, \hiPeakBypass, orb.get(\hiPeakBypass)
+			, \hiShelfBypass, orb.get(\hiShelfBypass)
+			, \loPassBypass, orb.get(\loPassBypass)
+		);
+
 		orb.set(*eqView.value.asArgsArray);
+		orb.set(*bypassValues.asPairs);
 	}
 
 	setOrbits { |pairs|
@@ -257,24 +327,31 @@ EqualizerUI : UIFactories{
 		var event = ();
 		var superDirtOSC = NetAddr("127.0.0.1", 57120);
 		var orbitIndex;
-		var eqParams = defaultParentEvent.keys;
+		var eqParams = defaultParentEvent.asDict.keys;
 
 		event.putPairs(msg[1..]);
 
 		orbitIndex = event.at(\orbit);
 
-		eqParams.do({
-			arg item;
+		if (orbits.at(orbitIndex).get(\activeEq) == 1, {
 
-			if (event.at(item.asSymbol).isNil.not, {
-				orbits.at(orbitIndex).defaultParentEvent.put(item.asSymbol, event.at(item.asSymbol));
+			eqParams.do({
+				arg item;
 
-				if (activeOrbit.isNil.not, {
-					this.updateEQ(orbits.at(orbitIndex));
-				})
+				if (event.at(item.asSymbol).isNil.not, {
+					orbits.at(orbitIndex).set(item.asSymbol, event.at(item.asSymbol));
+
+					if (activeOrbit.isNil.not, {
+						this.updateEQ(orbits.at(orbitIndex));
+					})
+				});
+			});
+
+			equalizerElements.keysValuesDo({
+				|key, value|
+				this.setEmptyButtonState(value[\element], false, activeOrbit, key);
 			});
 		});
-
 	}.defer;
 	}, ("/SuperDirtMixer"), recvPort: 57121).fix;
 	}

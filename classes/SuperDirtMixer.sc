@@ -1,12 +1,9 @@
 /*
 Optional TODOs
-- [] Dynamic amounts of level indicators per orbit based on the channel count
-- [] UI shall not be shown if EQui is not installed
-- [] Master EQ
-- [] Consider to add the SoftKneeCompression UGen directly to the mixer: https://github.com/supercollider-quarks/wslib/blob/master/wslib-classes/Extensions/UGens/SoftKneeCompressor.sc
-- [] Create new repo for EQUi (fork)
-- [] Create new repo for CompUi (original)
-
+- [] Implement Stage master
+- [] Disable MIDI Part section
+- [] Add a documentation for the remote control (BootTidal adjustment - hush, stream etc., add pattern functions)
+- [] Create a reel to preset the features (mixer, equalizer, compressor, stage master, preset management)
 */
 SuperDirtMixer {
 	var dirt;
@@ -141,8 +138,8 @@ SuperDirtMixer {
 					equalizerUI.createUI,
 					20,
 					compressorUI.createUI,
-					20,
-					midiControlUI.createUI,
+					//20,
+					//midiControlUI.createUI,
 					20,
 					masterUI.createUI(this.prMasterBus),
 					20,
