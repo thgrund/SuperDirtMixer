@@ -1,15 +1,31 @@
 # SuperDirtMixer (MrReason setup version)
 
-This is a mixer ui was created for the sound engine **SuperDirt** https://github.com/musikinformatik/SuperDirt for the **TidalCycles** http://tidalcycles.org/ programming language. The main motivation of this mixer was to get rid of using a DAW like Ableton in a live coding setup, because the author just used it for mixing a live setup. This mixer helps to realize tonal depth, clean frequency separation and a stereo panorama and makes this easily accessible in SuperDirt. In general this mixer overwrites the default values of the orbits defaultParentEvents. This means i.e. that it allows to change the value for gain from 1.0 to a different value from 0 to 1.5. These defaultParentEvent values will be used until they get overwritten on the TidalCycles side.
+This is a mixer ui was created for the sound engine **SuperDirt** https://github.com/musikinformatik/SuperDirt for the **TidalCycles** http://tidalcycles.org/ programming language. The main motivation of this mixer was to get rid of using a DAW like Ableton in a live coding setup, because the author just used it for mixing a live setup. This mixer helps to realize tonal depth, clean frequency separation, signal compression and a stereo panorama and makes this easily accessible in SuperDirt. In general this mixer overwrites the default values of the orbits defaultParentEvents. This means i.e. that it allows to change the value for pan from 0.5 to a different value from 0 to 1. These defaultParentEvent values will be used until they get overwritten on the TidalCycles side.
 
-For the EQ of an orbit, this plugin is using EQui (https://github.com/muellmusik/EQui). For this it's needed to add some additional values to the defaultParentEvent to store and change the EQui parameters which will be done during the initialisation of this mixer. The eq functionality was added as a global effect to every orbit. This allows you to change the eq parameters for every orbit and still use all the other filter like hpf or lpf.
+For the EQ of an orbit, this plugin is using EQui (https://github.com/thgrund/EQui). For this it's needed to add some additional values to the defaultParentEvent to store and change the EQui parameters which will be done during the initialisation of this mixer. The eq functionality was added as a global effect to every orbit. This allows you to change the eq parameters for every orbit and still use all the other filter like hpf or lpf.
+
+![mixer](HelpSource/Classes/mixer.png)
 
 ## Requirements
 
 - [TidalCycles](https://github.com/tidalcycles/Tidal) v1.9.4+
 - [SuperDirt Quark](https://github.com/musikinformatik/SuperDirt) v1.7.3+ (latest develop branch version)
 
-![mixer](HelpSource/Classes/mixer.png)
+## Features
+
+### Mixer
+
+### Equalizer
+
+- Five different filter types (high pass, low shelf, 3x peak, high shelf and low pass filter)
+- Graphical representation of the applied filter as frequency curves
+- Toggleable filter buttons. You can enable and disable all available filter
+
+### Dynamic Range Compressor
+
+### Stage Master
+
+### Preset Management
 
 ## How to install it
 
@@ -42,3 +58,10 @@ And then you can render the gui with executing this in any SuperCollider file
 ```
 
 For more in depth configuration options you can have a look into the helpfile. This is accessable in SuperCollider when your cursor is on `SuperDirtMixer` and you press i.e. `Command + D` on MacOS. 
+
+## Shoutouts
+
+- Wouter Snoei for the MasterEQ which influenced the EQui
+- Scott Wilson for the EQui project that I extended for this project
+- Alik Rustamoff for the Dynamic Range Compression tutorial
+
