@@ -138,8 +138,8 @@ SuperDirtMixer {
 					equalizerUI.createUI,
 					20,
 					compressorUI.createUI,
-					//20,
-					//midiControlUI.createUI,
+					20,
+					midiControlUI.createUI,
 					20,
 					masterUI.createUI(this.prMasterBus),
 					20,
@@ -149,6 +149,7 @@ SuperDirtMixer {
 		);
 
 		//eventHandler.printEventNames;
+		eventHandler.emitEvent(\resetAll);
 
 		window.onClose_({ dirt.stopSendRMS });
 		window.front;
