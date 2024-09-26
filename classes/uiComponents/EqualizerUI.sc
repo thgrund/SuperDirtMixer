@@ -103,7 +103,6 @@ EqualizerUI : UIFactories{
 				this.updateGlobalEffect(orbit);
 				this.setEQuiValues(orbit);
 			});
-
 			this.setEQuiValues(activeOrbit);
 			this.setBypassButtonState(bypassButton, false, activeOrbit, \activeEq);
 
@@ -127,6 +126,7 @@ EqualizerUI : UIFactories{
 			this.setOrbits(defaultParentEvent);
 
 			orbits.do({|orbit|
+				this.updateGlobalEffect(orbit);
 				this.setEQuiValues(orbit);
 			});
 
@@ -149,11 +149,12 @@ EqualizerUI : UIFactories{
 	}
 
 	updateGlobalEffect { |orbit|
+		var effect = this.searchForEffectSynth(orbit);
+
 		if(orbit.get(\activeEq) == 1, {
-			globalEffects.addGlobalEffect(
-				orbit, GlobalDirtEffect(\dirt_global_eq, [\activeEq]));
+			effect.bypass_(false);
 		}, {
-			globalEffects.releaseGlobalEffect(orbit, \dirt_global_eq);
+			effect.bypass_(true);
 		});
 	}
 
@@ -321,7 +322,6 @@ EqualizerUI : UIFactories{
 		    ]));
 			this.setEmptyButtonState(equalizerElements[property][\element], false, activeOrbit, property);
 	}
-
 
 	addRemoteControlListener { OSCFunc ({|msg| {
 		var event = ();

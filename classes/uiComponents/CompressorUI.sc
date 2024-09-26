@@ -41,6 +41,10 @@ CompressorUI : UIFactories {
 		if (orbits.isNil.not, {
 			activeOrbit = orbits[0];
 			this.setOrbits(defaultParentEvent);
+
+			orbits.do({|orbit|
+				globalEffects.addGlobalEffect(
+				orbit, GlobalDirtEffect(\dirt_global_compressor, [\activeCompressor, \cpAttack, \cpRelease, \cpThresh, \cpTrim, \cpGain, \cpRatio, \cpLookahead, \cpSaturate, \cpHpf, \cpKnee, \cpBias]))});
 		});
 
 		if (handler.isNil.not, {
@@ -91,16 +95,18 @@ CompressorUI : UIFactories {
 
 		if (eventName == \resetAll, {
 			this.setOrbits(defaultParentEvent);
+			orbits.do({|orbit| this.updateGlobalEffect(orbit)});
 			this.updateCompressorUI();
 		});
     }
 
 	updateGlobalEffect { |orbit|
+		var effect = orbit.globalEffects.detect({| effect | effect.name.asSymbol == \dirt_global_compressor.asSymbol; });
+
 		if(orbit.get(\activeCompressor) == 1, {
-			globalEffects.addGlobalEffect(
-				orbit, GlobalDirtEffect(\dirt_global_compressor, [\activeCompressor, \cpAttack, \cpRelease, \cpThresh, \cpTrim, \cpGain, \cpRatio, \cpLookahead, \cpSaturate, \cpHpf, \cpKnee, \cpBias]));
+			effect.bypass_(false);
 		}, {
-			globalEffects.releaseGlobalEffect(orbit, \dirt_global_compressor);
+			effect.bypass_(true);
 		});
 	}
 

@@ -5,16 +5,17 @@ var numChannels = ~dirt.numChannels;
 SynthDef("dirt_global_eq" ++ numChannels, { |out, dryBus, effectBus, gate = 1|
 		var sound;
 		var in = In.ar(dryBus, numChannels);
-		var env = EnvGen.kr(Env.asr, gate, doneAction:2);
+		var env = EnvGen.kr(Env.asr, gate, doneAction:1);
 
 		// Dry/Wet
 		// TODO: disable if no value was received
 		sound = in.equi;
+
 		DirtPause.ar(sound, graceTime: 4);
 
 		sound = sound * env;
 
-	    ReplaceOut.ar(dryBus, sound);
+		ReplaceOut.ar(dryBus, sound);
 
 	}, [\ir]).add;
 
@@ -26,9 +27,10 @@ SynthDef("dirt_global_compressor" ++ numChannels, { |out, dryBus, effectBus, gat
 
 	var local, dry, dryAmplitude, in, t, o, r, gainReduction, e, cpLookaheadDelay, compressedSound;
 	var cpKneelag;
-	var env = EnvGen.kr(Env.asr, gate, doneAction:2);
+	var env = EnvGen.kr(Env.asr, gate, doneAction:1);
 
 	dry = In.ar(dryBus, numChannels);
+
 	dryAmplitude = Amplitude.ar(dry, 0.001, 1.0);
 
 	in = dry * cpTrim.dbamp;
@@ -53,7 +55,6 @@ SynthDef("dirt_global_compressor" ++ numChannels, { |out, dryBus, effectBus, gat
 
 	in = Select.ar(cpSaturate, [in, (in + K2A.ar(cpBias)).softclip - cpBias]);
 	in = LeakDC.ar(in);
-
 
 	in = in * env;
 	DirtPause.ar(in, graceTime: 4);

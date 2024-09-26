@@ -150,6 +150,7 @@ SuperDirtMixer {
 
 		//eventHandler.printEventNames;
 		eventHandler.emitEvent(\resetAll);
+		eventHandler.emitEvent(\setActiveOrbit, dirt.orbits[0]);
 
 		window.onClose_({ dirt.stopSendRMS });
 		window.front;
