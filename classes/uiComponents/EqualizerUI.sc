@@ -8,6 +8,7 @@ EqualizerUI : UIFactories{
 	var bypassButton;
 	var equalizerElements;
 	var globalEffects;
+	var <createdUI;
 
     *new { |initHandler, initOrbits|
         ^super.new.init(initHandler, initOrbits);
@@ -279,7 +280,7 @@ EqualizerUI : UIFactories{
 		this.eqFilterButtonFactory(\loPassBypass, "../../assets/images/lowPass.svg".resolveRelative);
 
 
-		^VLayout(
+		createdUI = VLayout(
 		    HLayout(
 			    bypassButton,
 			    StaticText.new.string_("Equalizer").fixedHeight_(15),

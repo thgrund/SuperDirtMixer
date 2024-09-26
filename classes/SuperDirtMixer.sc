@@ -135,7 +135,7 @@ SuperDirtMixer {
 				mixerUI.createUI,
 				30,
 				HLayout (
-					equalizerUI.createUI,
+					equalizerUI.createdUI,
 					20,
 					compressorUI.createUI,
 					20,
