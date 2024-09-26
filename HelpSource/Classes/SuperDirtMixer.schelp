@@ -27,7 +27,7 @@ code::
 	    ~mixer = SuperDirtMixer(~dirt, 6010);
 
 	    // You can adjust parameters before you use the ui
-	    ~mixer.orbitLabels = ["d1 - Lead", "d2 - Bass", "d3 - Key", "d4 - Pad", "d5 - Arp", "d6 - Drums", "d7 - Rhytm Git", "d8 - Lead Git", "d9 - Strings", "d10 - FX", "d11 - Kick", "d12 - Cymbals", "d13 - Snare", "d14 - Toms"];
+		~mixer.setOrbitLabels(["d1 - Lead", "d2 - Bass", "d3 - Key", "d4 - Pad", "d5 - Arp", "d6 - Drums", "d7 - Rhytm Git", "d8 - Lead Git", "d9 - Strings", "d10 - FX", "d11 - Kick", "d12 - Cymbals", "d13 - Snare", "d14 - Toms"]);
         ~mixer.enableMasterPeakRMS(0)
     }
 )
@@ -72,10 +72,10 @@ This is basically an array with the length of ~dirt.orbits wich allows you to ch
 
 code::
 	// Change the label of each orbit
-	~mixer.orbitLabels = ["d1 - Lead", "d2 - Bass", "d3 - Key", "d4 - Pad", "d5 - Arp", "d6 - Drums", "d7 - Rhytm Git", "d8 - Lead Git", "d9 - Strings", "d10 - FX", "d11 - Kick", "d12 - Cymbals", "d13 - Snare", "d14 - Toms"];
+	~mixer.setOrbitLabels(["d1 - Lead", "d2 - Bass", "d3 - Key", "d4 - Pad", "d5 - Arp", "d6 - Drums", "d7 - Rhytm Git", "d8 - Lead Git", "d9 - Strings", "d10 - FX", "d11 - Kick", "d12 - Cymbals", "d13 - Snare", "d14 - Toms"]);
 
 	// Change the label of a specific orbit
-	~mixer.orbitLabels.put(4, "d5 - Arp");
+	~dirt.orbits[4].set(\label, "d5 - Arp");
 ::
 
 SUBSECTION:: Reverb FX
