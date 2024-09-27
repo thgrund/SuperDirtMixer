@@ -21,8 +21,16 @@ MidiControlUI {
 		var reshapedMidiControlButtons;
 
 		16.do({|item|
-			midiControlButtons.add(Button.new.action_({ ~midiInternalOut.control(0, item + 100, 0)}).string_(item + 1).minHeight_(36).minWidth_(36));
-		});
+			var button = Button.new
+				.action_({
+					~midiInternalOut.control(0, item + 100, 0);
+				})
+				.string_(item + 1).minHeight_(36).minWidth_(36);
+
+			button.states_([[item + 1, Color.black, Color.white]]);
+
+			midiControlButtons.add(button);
+	    });
 
 		reshapedMidiControlButtons = midiControlButtons.reshape(8,2);
 
@@ -45,7 +53,7 @@ MidiControlUI {
 				{
 				    var midiControlButtonIndex = msg[1];
 
-				    20.do({|item|
+				    16.do({|item|
 					    if (item == midiControlButtonIndex,
 						     {midiControlButtons.at(item).states_([[item + 1, Color.white, Color.new255(238, 180, 34)]]) },
 						     {midiControlButtons.at(item).states_([[item + 1, Color.black, Color.white]]) }

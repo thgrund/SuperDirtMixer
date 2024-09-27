@@ -79,4 +79,5 @@ For more in depth configuration options you can have a look into the helpfile. T
 - Wouter Snoei for the MasterEQ which influenced the EQui
 - Scott Wilson for the EQui project that I extended for this project
 - Alik Rustamoff for the Dynamic Range Compression tutorial
+- Calum Gunn for his Stage Master quark
 

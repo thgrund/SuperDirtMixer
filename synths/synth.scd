@@ -83,5 +83,37 @@ SynthDef("dirt_master_mix" ++ numChannels, { |dryBus, effectBus, gate = 1, maste
 	XOut.ar(effectBus, env, wetSignal);
 }, [\ir, \ir, \kr, \kr, \kr, \kr]).add;
 
+SynthDef("stageMaster", {
+	|out = 0, compThreshold = 0.7, highEndDb = 0.58, limiterLevel = 1.0|
+	var input = In.ar(out, numChannels);
+
+	// Remove DC offset
+	input = Select.ar(CheckBadValues.ar(input, 0, 0), [input, DC.ar(0), DC.ar(0), input]);
+
+	// Compressor
+	input = Compander.ar(
+		input,
+		input,
+		thresh: compThreshold,
+		slopeBelow: 1.05,
+		slopeAbove: 0.4,
+		clampTime:  0.01,
+		relaxTime:  0.01
+	);
+
+	// Hi-shelf EQ, for brightness
+	input = BHiShelf.ar(
+		input,
+		freq: 2400.0,
+		rs: 1.0,
+		db: highEndDb
+	);
+
+	// Limiter
+	input = Limiter.ar(input, limiterLevel);
+	ReplaceOut.ar(0, input);
+}).add;
+
 }.value
+
 );

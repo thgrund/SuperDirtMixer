@@ -137,7 +137,8 @@ MixerUI : UIFactories {
 				    // Save EQ values before switching to the new eq orbit
 			        handler.emitEvent(\setActiveOrbit, orbit);
 			        activeOrbit = orbit;
-				    guiElements.do({arg item; item[\eq][\element].states_([["FX", Color.black, Color.white]])});
+				    guiElements.do(
+				       {arg item; item[\eq][\element].states_([["FX", Color.black, Color.white]])});
 		            a.states_([["FX", Color.white, Color.new255(238, 180, 34)]]);
 	            });
 

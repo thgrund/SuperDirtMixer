@@ -78,6 +78,34 @@ UIKnobFactories {
 		);
 	 }
 
+	knobFactory3 {
+			| parent, key, title, knobToSynthValue, synthToKnobValue, formater, label, default, action |
+            parent.put(key, Dictionary.new);
+
+		    parent[key].put(\knobToSynthValue, knobToSynthValue);
+
+		    parent[key].put(\synthToKnobValue, synthToKnobValue);
+
+		    parent[key].put(\title, StaticText.new.string_(title).maxHeight_(30).align_(\center));
+
+		    parent[key].put(\value, label.string_(formater.format(knobToSynthValue.value(default))));
+
+		    parent[key].put(\element,
+			    Knob().value_(default).action_({|a|
+				     action.value(a.value);
+				     parent[key][\value].string_(formater.format(knobToSynthValue.value(a.value)));
+		        })
+		    );
+		}
+
+	 knobWithValueLabelFactory3 {
+		arg parent, key, title, knobToSynthValue, synthToKnobValue, format, default, action;
+
+		this.knobFactory3( parent, key, title, knobToSynthValue, synthToKnobValue, format,
+			StaticText.new.string_().maxHeight_(30).align_(\center), default, action
+		);
+	 }
+
 
 	 knobWithNumberBoxFactory {
 			| parent, key, title, formater, default, action |
