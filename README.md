@@ -76,7 +76,7 @@ For more in depth configuration options you can have a look into the helpfile. T
 
 ## Control the mixer with TidalCycles
 
-It's possible to directly change the orbit values within your regular tidal patterns, but then you wouldn't see the changes reflected in the ui. In any case you need to evaluate the code in `tidal/src/PatternFunctions.hs`.
+It's possible to directly change the orbit values within your regular tidal patterns, but then you wouldn't see the changes reflected in the ui. In any case you need to evaluate the code in [tidal/src/PatternFunctions.hs](tidal/src/PatternFunctions.hs).
 
 To control the SuperDirtMixer with TidalCycles and to see the changeds reflected in the ui, you need to create a new target in your `BootTidal.hs` . Here is the template for it:
 
