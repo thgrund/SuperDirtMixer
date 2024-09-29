@@ -74,6 +74,74 @@ And then you can render the gui with executing this in any SuperCollider file
 
 For more in depth configuration options you can have a look into the helpfile. This is accessable in SuperCollider when your cursor is on `SuperDirtMixer` and you press i.e. `Command + D` on MacOS. 
 
+## Control the mixer with TidalCycles
+
+It's possible to directly change the orbit values within your regular tidal patterns, but then you wouldn't see the changes reflected in the ui. In any case you need to evaluate the code in `tidal/src/PatternFunctions.hs`.
+
+To control the SuperDirtMixer with TidalCycles and to see the changeds reflected in the ui, you need to create a new target in your `BootTidal.hs` . Here is the template for it:
+
+```haskell
+let superDirtMixerTarget = Target {
+			  oName = "superDirtMixer", oAddress = "localhost"
+				, oPort = 57121, oLatency = 0.2, oSchedule = Live
+				, oWindow = Nothing, oHandshake = False
+				, oBusPort = Nothing }
+    oscplay = OSC "/SuperDirtMixer" Named {requiredArgs = ["orbit"]}
+    oscmap = [(superDirtMixerTarget, [oscplay])]
+
+superDirtMixer <- startStream (defaultConfig {cCtrlPort = 6011}) oscmap
+
+let x1 = streamReplace superDirtMixer 1 . (|< orbit 0)
+    x2 = streamReplace superDirtMixer 2 . (|< orbit 1)
+    x3 = streamReplace superDirtMixer 3 . (|< orbit 2)
+    x4 = streamReplace superDirtMixer 4 . (|< orbit 3)
+    x5 = streamReplace superDirtMixer 5 . (|< orbit 4)
+    x6 = streamReplace superDirtMixer 6 . (|< orbit 5)
+    x7 = streamReplace superDirtMixer 7 . (|< orbit 6)
+    x8 = streamReplace superDirtMixer 8 . (|< orbit 7)
+    x9 = streamReplace superDirtMixer 9 . (|< orbit 8)
+    x10 = streamReplace superDirtMixer 10 . (|< orbit 9)
+    x11 = streamReplace superDirtMixer 11 . (|< orbit 10)
+    x12 = streamReplace superDirtMixer 12 . (|< orbit 11)
+    x13 = streamReplace superDirtMixer 13 . (|< orbit 12)
+    x14 = streamReplace superDirtMixer 14 . (|< orbit 13)
+   
+-- This is needed to silence all patterns from both streams
+hush = do
+   streamHush tidal
+   streamHush superDirtMixer
+
+```
+
+Then you should be able to run these TidalCycles patterns independently from. your other patterns and see the changes in the ui. I.e. 
+```haskell
+x1 $
+ stack [
+-- Equalizer
+   every 2 rev $ loShelfFreq "100"
+      <| loShelfGain
+      (segment 64 $ range "-8" 16 sine)
+  ,loPeakGain "<-10 -5 8>"
+      <| (slow 2 $ loPeakFreq
+      (segment 64 $ range 100 5000 sine))
+  ,  midPeakGain "<10>"
+      <| midPeakFreq
+      (slow 2 $ segment 64 $ range 400 2000 isaw)
+  , hiPeakGain "<12 -6 -8>"
+      <| hiPeakFreq
+      (slow 2 $ segment 64 $ range 8000 1000 cosine)
+  , loPassFreq "<7000 5000 10000 1000>"
+  , loPassBypass "<1 0>"
+  , hiShelfFreq "7000"
+    <| hiShelfGain
+    (segment 64 $ range "-8" 16 sine)
+  -- Compressor
+  , cpThresh "<-40 -20 -10 0>" <| cpRatio "1 2 3 4" # cpGain "<10 4 2 0>"
+  , pan "[0 0.25 0.5 0.75 1]"
+]
+
+```
+
 ## Shoutouts
 
 - Wouter Snoei for the MasterEQ which influenced the EQui

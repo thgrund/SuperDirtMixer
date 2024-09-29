@@ -161,9 +161,9 @@ EqualizerUI : UIFactories{
 		var effect = this.searchForEffectSynth(orbit);
 
 		if(orbit.get(\activeEq) == 1, {
-			effect.bypass_(false);
+			effect.active_(true);
 		}, {
-			effect.bypass_(true);
+			effect.active_(false);
 		});
 	}
 

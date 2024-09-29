@@ -1,14 +1,16 @@
 MidiControlUI {
 	var midiControlButtons;
 	var switchControlButtonEvent;
+	var midiOut;
 
-    *new { |initSwitchControlButtonEvent|
-        ^super.new.init(initSwitchControlButtonEvent);
+    *new { |initSwitchControlButtonEvent, initMidiOut|
+        ^super.new.init(initSwitchControlButtonEvent, initMidiOut);
     }
 
-	init { |initSwitchControlButtonEvent|
+	init { |initSwitchControlButtonEvent, initMidiOut|
 		midiControlButtons = Array.new(20);
 		switchControlButtonEvent = initSwitchControlButtonEvent;
+		midiOut = initMidiOut;
 
 		this.addMidiControlButtonListener;
 	}
@@ -23,7 +25,7 @@ MidiControlUI {
 		16.do({|item|
 			var button = Button.new
 				.action_({
-					~midiInternalOut.control(0, item + 100, 0);
+					midiOut.control(0, item + 100, 0);
 				})
 				.string_(item + 1).minHeight_(36).minWidth_(36);
 
@@ -34,18 +36,22 @@ MidiControlUI {
 
 		reshapedMidiControlButtons = midiControlButtons.reshape(8,2);
 
-		^VLayout(
-			StaticText.new.string_("MIDI Part Switch").fixedHeight_(15).align_(\center),
-			HLayout(*reshapedMidiControlButtons[0]),
-			HLayout(*reshapedMidiControlButtons[1]),
-			HLayout(*reshapedMidiControlButtons[2]),
-			HLayout(*reshapedMidiControlButtons[3]),
-			HLayout(*reshapedMidiControlButtons[4]),
-			HLayout(*reshapedMidiControlButtons[5]),
-			HLayout(*reshapedMidiControlButtons[6]),
-			HLayout(*reshapedMidiControlButtons[7]),
-			100
-		);
+		if (midiOut.isNil.not,{
+			^VLayout(
+				StaticText.new.string_("MIDI Part Switch").fixedHeight_(15).align_(\center),
+				HLayout(*reshapedMidiControlButtons[0]),
+				HLayout(*reshapedMidiControlButtons[1]),
+				HLayout(*reshapedMidiControlButtons[2]),
+				HLayout(*reshapedMidiControlButtons[3]),
+				HLayout(*reshapedMidiControlButtons[4]),
+				HLayout(*reshapedMidiControlButtons[5]),
+				HLayout(*reshapedMidiControlButtons[6]),
+				HLayout(*reshapedMidiControlButtons[7]),
+				100
+			);
+		}, {
+			^VLayout()
+		});
 	}
 
 	addMidiControlButtonListener {

@@ -1,8 +1,6 @@
 /*
 Optional TODOs
-- [] Disable MIDI Part section
 - [] Release everything when GUI is closed
-- [] Add a documentation for the remote control (BootTidal adjustment - hush, stream etc., add pattern functions)
 - [] Create a reel to preset the features (mixer, equalizer, compressor, stage master, preset management)
 */
 SuperDirtMixer {
@@ -10,6 +8,7 @@ SuperDirtMixer {
 	var <>presetPath = "../../presets/";
 	var <>prMasterBus;
 	var <>switchControlButtonEvent;
+	var >midiInternalOut;
 	var reverbVariableName = \room;
 	var reverbNativeSize = 0.95;
 	var oscMasterLevelSender;
@@ -91,7 +90,7 @@ SuperDirtMixer {
 		reverbVariableName = variableName;
 	}
 
-	enableMasterPeakRMS { |masterBus|
+	setMasterBus { |masterBus|
 		this.prMasterBus = masterBus;
 
 		oscMasterLevelSender = {
@@ -113,7 +112,7 @@ SuperDirtMixer {
 		var mixerUI = MixerUI.new(eventHandler, dirt.orbits);
 		var utilityUI =  UtilityUI.new(eventHandler, dirt.orbits, presetPath);
 		var equalizerUI = EqualizerUI.new(eventHandler, dirt.orbits);
-		var midiControlUI = MidiControlUI.new(switchControlButtonEvent);
+		var midiControlUI = MidiControlUI.new(switchControlButtonEvent, midiInternalOut);
 		var compressorUI = CompressorUI.new(eventHandler, dirt.orbits);
 
 		mixerUI.reverbVariableName = reverbVariableName;

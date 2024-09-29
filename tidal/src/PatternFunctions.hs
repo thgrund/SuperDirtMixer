@@ -43,3 +43,6 @@ let cpAttack = pF "cpAttack"
     cpHpf = pF "cpHpf"
     cpKnee = pF "cpKnee"
     cpBias = pF "cpBias"
+
+-- Mixer
+let masterGain = pF "masterGain"

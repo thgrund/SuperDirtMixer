@@ -109,9 +109,9 @@ CompressorUI : UIFactories {
 		var effect = orbit.globalEffects.detect({| effect | effect.name.asSymbol == \dirt_global_compressor.asSymbol; });
 
 		if(orbit.get(\activeCompressor) == 1, {
-			effect.bypass_(false);
+			effect.active_(true);
 		}, {
-			effect.bypass_(true);
+			effect.active_(false);
 		});
 	}
 
