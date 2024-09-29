@@ -1,7 +1,7 @@
 /*
 Optional TODOs
-- [] Implement Stage master
 - [] Disable MIDI Part section
+- [] Release everything when GUI is closed
 - [] Add a documentation for the remote control (BootTidal adjustment - hush, stream etc., add pattern functions)
 - [] Create a reel to preset the features (mixer, equalizer, compressor, stage master, preset management)
 */
@@ -33,7 +33,6 @@ SuperDirtMixer {
 
 			eventHandler = EventHandler.new;
 
-			this.prInitGlobalEffect;
 			dirt.startSendRMS;
 
 			dirt.orbits.do({
@@ -45,12 +44,6 @@ SuperDirtMixer {
 		}
 	}
 
-	prInitGlobalEffect {
-		var globalEffects = GlobalEffects.new;
-		dirt.orbits.do { |orbit|
-				globalEffects.addGlobalEffect(orbit, GlobalDirtEffect(\dirt_master_mix, [\masterGain, \gainControlLag]), false);
-		};
-	}
 
 	setOrbitLabels {
 		|labels|
@@ -130,6 +123,7 @@ SuperDirtMixer {
 
 		// Create a window
 		window = Window.new("Mixer", Rect(0,0,300,1000), scroll: true);
+		window.background_(Color.grey(0.8));
 		window.layout_(
 			VLayout(
 				mixerUI.createUI,
@@ -148,11 +142,15 @@ SuperDirtMixer {
 			)
 		);
 
+
 		//eventHandler.printEventNames;
 		eventHandler.emitEvent(\resetAll);
 		eventHandler.emitEvent(\setActiveOrbit, dirt.orbits[0]);
 
-		window.onClose_({ dirt.stopSendRMS });
+		window.onClose_({
+			eventHandler.emitEvent(\releaseAll);
+			dirt.stopSendRMS;
+		});
 		window.front;
 	}
 

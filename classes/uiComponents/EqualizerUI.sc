@@ -29,6 +29,7 @@ EqualizerUI : UIFactories{
 			handler.subscribe(this, \updateActiveOrbit);
 			handler.subscribe(this, \updateUI);
 			handler.subscribe(this, \resetAll);
+			handler.subscribe(this, \releaseAll);
 
 			handler.emitEvent(\extendDefaultParentEvent, defaultParentEvent);
 		});
@@ -100,10 +101,12 @@ EqualizerUI : UIFactories{
 		});
 
 		if (eventName == \updateUI, {
+
 			orbits.do({|orbit|
 				this.updateGlobalEffect(orbit);
 				this.setEQuiValues(orbit);
 			});
+
 			this.setEQuiValues(activeOrbit);
 			this.setBypassButtonState(bypassButton, false, activeOrbit, \activeEq);
 
@@ -135,6 +138,11 @@ EqualizerUI : UIFactories{
 				|key, value|
 				this.setEmptyButtonState(value[\element], false, activeOrbit, key);
 			});
+		});
+
+		if (eventName == \releaseAll, {
+			orbits.do({|orbit| globalEffects.releaseGlobalEffect(orbit, \dirt_global_eq)});
+			freqScope.kill;
 		});
     }
 

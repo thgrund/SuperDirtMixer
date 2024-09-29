@@ -1,18 +1,26 @@
 MasterUI : UIFactories {
+	var handler;
 	var leftMasterIndicator, rightMasterIndicator;
 	var stageMaster;
 	var synth;
 
-    *new {
-        ^super.new.init;
+    *new { | initHandler |
+		^super.new.init(initHandler);
     }
 
 	init {
+		| initHandler |
 		var uiKnobFactories = UIKnobFactories();
+		handler = initHandler;
 		stageMaster = Dictionary.new;
 
 		leftMasterIndicator = LevelIndicator.new.maxWidth_(12).drawsPeak_(true).warning_(0.9).critical_(1.0);
 		rightMasterIndicator = LevelIndicator.new.maxWidth_(12).drawsPeak_(true).warning_(0.9).critical_(1.0);
+
+		if (handler.isNil.not, {
+			handler.subscribe(this, \releaseAll);
+		});
+
 
 		// Live Button
 		stageMaster.put(\live, Dictionary.newFrom([\element,
@@ -20,13 +28,15 @@ MasterUI : UIFactories {
 			.action_({ |button|
 				if(button.value == 1, {
 					synth.run(true);
+					this.changeButtonsStatus(true);
 				}, {
 					synth.run(false);
+					this.changeButtonsStatus(false);
 				});
 			})
 		]));
 
-		stageMaster[\live][\element].states = [["Live", Color.black, Color.white], ["Live", Color.white, Color.new255(238, 180, 34)]];
+		stageMaster[\live][\element].states = [["Live", Color.black, Color.gray(0.9)], ["Live", Color.white, Color.new255(238, 180, 34)]];
 
 		uiKnobFactories.knobWithValueLabelFactory3( stageMaster
 			, \compThreshold, "Comp Threshold"
@@ -61,6 +71,7 @@ MasterUI : UIFactories {
 			}
 		);
 
+		this.changeButtonsStatus(false);
 
 		if (synth.isNil, {
 			synth = Synth.newPaused(\stageMaster, target: RootNode(~dirt.server), addAction: \addToTail);
@@ -70,16 +81,33 @@ MasterUI : UIFactories {
 	}
 
 	handleEvent { |eventName, eventData|
-        ("ServiceC received % with data: %".format(eventName, eventData)).postln;
-    }
+		if (eventName == \releaseAll, {
+			synth.free;
+		});
+	}
+
+	changeButtonsStatus {
+		|enable|
+
+		stageMaster[\compThreshold][\element].enabled_(enable);
+		stageMaster[\limiterLevel][\element].enabled_(enable);
+		stageMaster[\highEndDb][\element].enabled_(enable);
+	}
 
 	createUI {
 		|prMasterBus|
 
+		    if (prMasterBus.isNil, {
+			    stageMaster[\live][\element].enabled_(false);
+			    stageMaster[\live][\element].states_([["Live", Color.grey(0.4), Color.white]]);
+		    },{
+			    if (synth.isNil.not, {synth.set(\out, prMasterBus)})
+		    });
+
 			^VLayout(
 				/* DEFINE MASTER UI : EXTRACT -> Stage master */
-				if (prMasterBus.isNil.not, { StaticText.new.string_("Master").minWidth_(100).maxHeight_(30).align_(\center)}),
-				if (prMasterBus.isNil.not, { HLayout(leftMasterIndicator,rightMasterIndicator).spacing_(0)}),
+				StaticText.new.string_("Master").minWidth_(100).maxHeight_(30).align_(\center),
+				HLayout(leftMasterIndicator,rightMasterIndicator).spacing_(0),
 				10,
 				StaticText.new.string_("Stage Master").minWidth_(100).maxHeight_(30).align_(\center),
 				10,

@@ -25,8 +25,14 @@ MixerUI : UIFactories {
 	    ];
 
 		if (orbits.isNil.not, {
+			var globalEffects = GlobalEffects.new;
+
 			activeOrbit = orbits[0];
 			this.setOrbits(defaultParentEvent);
+
+			orbits.do { |orbit|
+				globalEffects.addGlobalEffect(orbit, GlobalDirtEffect(\dirt_master_mix, [\masterGain, \gainControlLag]), true);
+			};
 		});
 
 		reverbVariableName = \room;
@@ -34,8 +40,8 @@ MixerUI : UIFactories {
 		if (handler.isNil.not, {
 			handler.subscribe(this, \resetAll);
 			handler.subscribe(this, \updateUI);
+			handler.subscribe(this, \releaseAll);
 		});
-
 
 		this.addMeterResponseOSCFunc;
 		this.addPanListener;
@@ -65,6 +71,10 @@ MixerUI : UIFactories {
             });
 		});
 
+		if (eventName == \releaseAll, {
+			var globalEffects = GlobalEffects.new;
+			orbits.do({|orbit| globalEffects.releaseGlobalEffect(orbit, \dirt_master_mix )});
+		});
     }
 
 	setOrbits { |pairs|
@@ -138,7 +148,7 @@ MixerUI : UIFactories {
 			        handler.emitEvent(\setActiveOrbit, orbit);
 			        activeOrbit = orbit;
 				    guiElements.do(
-				       {arg item; item[\eq][\element].states_([["FX", Color.black, Color.white]])});
+				       {arg item; item[\eq][\element].states_([["FX", Color.black, Color.gray(0.9)]])});
 		            a.states_([["FX", Color.white, Color.new255(238, 180, 34)]]);
 	            });
 
@@ -162,7 +172,7 @@ MixerUI : UIFactories {
 
 		    if (orbit == activeOrbit,
 				{eqButton.states_([["FX", Color.white, Color.new255(238, 180, 34)]])},
-				{eqButton.states_([["FX", Color.black, Color.white]])});
+				{eqButton.states_([["FX", Color.black, Color.gray(0.9)]])});
 
 			^VLayout(
 				orbitLabelView,
@@ -179,13 +189,13 @@ MixerUI : UIFactories {
 				eqButton,
 				HLayout(
 					Button.new.maxWidth_(25)
-					.states_([["M", Color.black, Color.white], ["M", Color.white, Color.blue]])
+					.states_([["M", Color.black, Color.gray(0.9)], ["M", Color.white, Color.blue]])
 					.action_({
 						|view|
 						if(view.value == 0) { tidalNetAddr.sendMsg("/unmute",orbit.orbitIndex + 1) };
 						if(view.value == 1) { tidalNetAddr.sendMsg("/mute",orbit.orbitIndex + 1) };
 					}),
-					Button.new.maxWidth_(25).states_([["S", Color.black, Color.white], ["S", Color.white, Color.red]]).action_({
+					Button.new.maxWidth_(25).states_([["S", Color.black, Color.gray(0.9)], ["S", Color.white, Color.red]]).action_({
 						|view|
 						if(view.value == 0) { tidalNetAddr.sendMsg("/unsolo",orbit.orbitIndex + 1) };
 						if(view.value == 1) { tidalNetAddr.sendMsg("/solo",orbit.orbitIndex + 1) };

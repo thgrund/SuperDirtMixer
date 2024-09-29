@@ -27,7 +27,7 @@ MidiControlUI {
 				})
 				.string_(item + 1).minHeight_(36).minWidth_(36);
 
-			button.states_([[item + 1, Color.black, Color.white]]);
+			button.states_([[item + 1, Color.black, Color.gray(0.9)]]);
 
 			midiControlButtons.add(button);
 	    });
@@ -56,7 +56,7 @@ MidiControlUI {
 				    16.do({|item|
 					    if (item == midiControlButtonIndex,
 						     {midiControlButtons.at(item).states_([[item + 1, Color.white, Color.new255(238, 180, 34)]]) },
-						     {midiControlButtons.at(item).states_([[item + 1, Color.black, Color.white]]) }
+						     {midiControlButtons.at(item).states_([[item + 1, Color.black, Color.gray(0.9)]]) }
 					    );
 				    });
 

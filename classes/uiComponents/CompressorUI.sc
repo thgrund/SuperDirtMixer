@@ -51,6 +51,7 @@ CompressorUI : UIFactories {
 			handler.subscribe(this, \setActiveOrbit);
 			handler.subscribe(this, \updateUI);
 			handler.subscribe(this, \resetAll);
+			handler.subscribe(this, \releaseAll);
 
 			handler.emitEvent(\extendDefaultParentEvent, defaultParentEvent);
 		});
@@ -97,6 +98,10 @@ CompressorUI : UIFactories {
 			this.setOrbits(defaultParentEvent);
 			orbits.do({|orbit| this.updateGlobalEffect(orbit)});
 			this.updateCompressorUI();
+		});
+
+		if (eventName == \releaseAll, {
+			orbits.do({|orbit| globalEffects.releaseGlobalEffect(orbit, \dirt_global_compressor)});
 		});
     }
 
