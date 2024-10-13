@@ -51,12 +51,12 @@ MasterUI : UIFactories {
 
 		uiKnobFactories.knobWithValueLabelFactory3( stageMaster
 			, \limiterLevel, "Limiter Level"
-			, {|value| value.linlin(0.0,1.0,0.001, 10.0).round(1e-2)} //knobToSynthValue
+			, {|value| value.ampdb.round(1e-2)} //knobToSynthValue
 			, {|value| value} // synthToKnobValue
-			, "%ms"
-			, (2.0).linlin(0.001, 10.0, 0.0,1.0)
+			, "%dB"
+			, 1
 			, {|value|
-				synth.set(\limiterLevel, stageMaster[\limiterLevel][\knobToSynthValue].value(value));
+				synth.set(\limiterLevel, value);
 			}
 		);
 

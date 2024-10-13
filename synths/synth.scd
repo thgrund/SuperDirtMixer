@@ -111,7 +111,7 @@ SynthDef("stageMaster", {
 
 	// Limiter
 	input = Limiter.ar(input, limiterLevel);
-	ReplaceOut.ar(0, input);
+	ReplaceOut.ar(out, input);
 }).add;
 
 }.value
