@@ -157,9 +157,9 @@ CompressorUI : UIFactories {
 
 		// Draw axis labels
 		Pen.color = Color.black;
-		Pen.stringAtPoint("Input Level (dB)", Point(height * 0.5, width * 0.9));
+		Pen.stringAtPoint("Input Level (dB)", Point(height * 0.4, width * 0.9), Font( Font.defaultSansFace, 14 ), Color.gray(0.2).alpha_(0.5));
 		Pen.rotate(0);
-		Pen.stringAtPoint("Output Level (dB)", Point(0, width * 0.5)); // Adjusted position for better visibility
+		Pen.stringAtPoint("Output Level (dB)", Point(0, width * 0.5), Font( Font.defaultSansFace, 14 ), Color.gray(0.2).alpha_(0.5)); // Adjusted position for better visibility
 		Pen.rotate(-0);
 	}
 
