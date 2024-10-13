@@ -1,1 +1,3 @@
 .DS_Store
+presets/*
+!presets/Default.json
