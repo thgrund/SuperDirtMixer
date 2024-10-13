@@ -55,7 +55,7 @@ MixerUI : UIFactories {
 			orbits.do({|item|
 				guiElements[item.orbitIndex][\pan][\element].value_(item.get(\pan));
 				guiElements[item.orbitIndex][\pan][\value].value_(item.get(\pan));
-				guiElements[item.orbitIndex][\masterGain][\element].value_((item.get(\masterGain) + 1).explin(1,3, 0,1));
+				guiElements[item.orbitIndex][\masterGain][\element].value_((item.get(\masterGain) + 1).curvelin(1,3, 0,1, curve: 3));
 				guiElements[item.orbitIndex][\masterGain][\value].value_(item.get(\masterGain));
 				guiElements[item.orbitIndex][\reverb][\element].value_(item.get(reverbVariableName));
 			});
@@ -65,7 +65,7 @@ MixerUI : UIFactories {
 			orbits.do({|item|
 				guiElements[item.orbitIndex][\pan][\element].value_(0.5);
 				guiElements[item.orbitIndex][\pan][\value].value_(0.5);
-				guiElements[item.orbitIndex][\masterGain][\element].value_(2.explin(1,3,0,1));
+				guiElements[item.orbitIndex][\masterGain][\element].value_(2.curvelin(1,3,0,1, curve: 3));
 				guiElements[item.orbitIndex][\masterGain][\value].value_(1.0);
 				guiElements[item.orbitIndex][\reverb][\element].value_(0.0);
             });
@@ -130,16 +130,16 @@ MixerUI : UIFactories {
 		            orbit.set(\pan,a.value);
 	            });
 
-		    var gainSlider = Slider.new.maxWidth_(30).value_((orbit.get(\masterGain) + 1).explin(1,3,0,1)).action_({|a|
-			        orbit.set(\masterGain,a.value.linexp(0, 1.0, 1,3) - 1);
-		            gainNumBox.value_(a.value.linexp(0, 1.0, 1,3)-1);
+		    var gainSlider = Slider.new.maxWidth_(30).value_((orbit.get(\masterGain) + 1).curvelin(1,3,0,1, curve: 3)).action_({|a|
+			        orbit.set(\masterGain,a.value.lincurve(0, 1.0, 1,3, curve: 3) - 1);
+		            gainNumBox.value_(a.value.lincurve(0, 1.0, 1,3, curve: 3)-1);
 		        });
 
 	        var gainNumBox = NumberBox()
 	            .decimals_(2)
 	            .clipLo_(0).clipHi_(2).align_(\center)
 	            .scroll_step_(0.1).value_(orbit.get(\masterGain)).action_({|a|
-			        gainSlider.value_((a.value + 1).explin(1, 3, 0, 1));
+			        gainSlider.value_((a.value + 1).curvelin(1, 3, 0, 1, curve: 3));
 		            orbit.set(\masterGain,a.value);
 	            });
 
@@ -245,7 +245,7 @@ MixerUI : UIFactories {
 				    var value     = msg[2];
 
 				    orbits.at(orbitIndex).set(\masterGain, value.linlin(0,2,0,2));
-					guiElements[orbitIndex][\masterGain][\element].value_((orbits.at(orbitIndex).get(\masterGain) + 1).explin(1,3, 0,1));
+					guiElements[orbitIndex][\masterGain][\element].value_((orbits.at(orbitIndex).get(\masterGain) + 1).curvelin(1,3, 0,1, curve: 3));
 					guiElements[orbitIndex][\masterGain][\value].value_(orbits.at(orbitIndex).get(\masterGain));
 			}.defer;
 	    }, ("/SuperDirtMixer/masterGain"), recvPort: 57120).fix;
@@ -291,7 +291,7 @@ MixerUI : UIFactories {
 
 			if (event.at(\masterGain).isNil.not, {
 			    orbits.at(orbitIndex).set(\masterGain, event.at(\masterGain).linlin(0,2,0,2));
-				guiElements[orbitIndex][\masterGain][\element].value_((orbits.at(orbitIndex).get(\masterGain) + 1).explin(1,3, 0,1));
+				guiElements[orbitIndex][\masterGain][\element].value_((orbits.at(orbitIndex).get(\masterGain) + 1).curvelin(1,3, 0,1, curve: 3));
 				guiElements[orbitIndex][\masterGain][\value].value_(orbits.at(orbitIndex).get(\masterGain));
 			});
 

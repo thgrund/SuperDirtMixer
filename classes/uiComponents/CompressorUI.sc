@@ -35,8 +35,8 @@ CompressorUI : UIFactories {
 		// Parameters for the compressor
 		ampThreshold = -60;
 
-		height = 400;
-		width = 400;
+		height = 380;
+		width = 380;
 
 		if (orbits.isNil.not, {
 			activeOrbit = orbits[0];
@@ -245,7 +245,7 @@ CompressorUI : UIFactories {
 
 		comporessorView.refresh;
 
-		gainReductionSlider = LevelIndicator.new.fixedWidth_(30).value_(1);
+		gainReductionSlider = LevelIndicator.new.fixedWidth_(30).minHeight_(height - 30).value_(1);
 		// inverse
 		gainReductionSlider.background = Color.green;
 		gainReductionSlider.meterColor = Color.black.alpha_(1);
@@ -257,6 +257,7 @@ CompressorUI : UIFactories {
 		// Slider to adjust threshold
 		thresholdSlider = Slider(nil, Rect(610, 50, 30, height - 15))
 		.maxHeight_(height)
+		.minHeight_(height - 45)
 		.fixedWidth_(30)
 		.orientation_(\vert)
 		//.value_(threshold.linlin(minThreshold, 0, 0, 1))
@@ -288,8 +289,8 @@ CompressorUI : UIFactories {
 		uiKnobFactories.knobWithValueLabelFactory2(
 			compressorElements
 			, \cpRatio, "Ratio",
-			{|value| value.linexp(0,1,1,20).round(1e-2) },
-			{|value| (value).explin(1,20,0,1)},
+			{|value| value.lincurve(0,1,1,20, curve: 4).round(1e-2) },
+			{|value| (value).curvelin(1,20,0,1, curve: 4)},
 			"%",
 		    {
 				ratio = activeOrbit.get(\cpRatio);
@@ -301,41 +302,33 @@ CompressorUI : UIFactories {
 		uiKnobFactories.knobWithValueLabelFactory2(
 			compressorElements
 			, \cpAttack, "Attack",
-			{|value| value.linexp(0,1,1,11).round(1e-2) - 1},
-			{|value| (value + 1).explin(1,11,0,1)},
-			"%ms"
-		);
-
-		uiKnobFactories.knobWithValueLabelFactory2(
-			compressorElements
-			, \cpAttack, "Attack",
-			{|value| value.linexp(0,1,1,11).round(1e-2) - 1},
-			{|value| (value + 1).explin(1,11,0,1)},
+			{|value| value.lincurve(0,1,1,11, curve: 4).round(1e-2) - 1},
+			{|value| (value + 1).curvelin(1,11,0,1, curve: 4)},
 			"%ms"
 		);
 
 		uiKnobFactories.knobWithValueLabelFactory2(
 			compressorElements
 			, \cpRelease, "Release",
-			{|value| value.linexp(0,1,1,11).round(1e-2) - 1},
-			{|value| (value + 1).explin(1,11,0,1)},
+			{|value| value.lincurve(0,1,1,11, curve: 4).round(1e-2) - 1},
+			{|value| (value + 1).curvelin(1,11,0,1, curve: 4)},
 			"%ms"
 		);
 
 
 		uiKnobFactories.knobWithValueLabelFactory2(
 			compressorElements
-			, \cpTrim, "Trim",
-			{|value| value.linlin(0, 1, 0, 60).round(1e-2)},
-			{|value| value.linlin(0,60,0,1)},
+			, \cpTrim, "Pre-Gain",
+			{|value| value.lincurve(0, 1, 0, 60, curve: 4).round(1e-2)},
+			{|value| value.curvelin(0,60,0,1, curve: 4)},
 			"%dB"
 		);
 
 		uiKnobFactories.knobWithValueLabelFactory2(
 			compressorElements
 			, \cpGain, "Gain",
-			{|value| value.linlin(0, 1, 0, 60).round(1e-2)},
-			{|value| value.linlin(0,60,0,1)},
+			{|value| value.lincurve(0, 1, 0, 60, curve: 4).round(1e-2)},
+			{|value| value.curvelin(0,60,0,1, curve: 4)},
 			"%dB"
 		);
 
@@ -379,27 +372,33 @@ CompressorUI : UIFactories {
 				VLayout(
 					compressorElements[\cpThresh][\title]
 					, compressorElements[\cpThresh][\element]
-					, compressorElements[\cpThresh][\value]
-				    ,VLayout (compressorElements[\cpKnee][\title], compressorElements[\cpKnee][\element], compressorElements[\cpKnee][\value])
-				    ,VLayout (compressorElements[\cpBias][\title], compressorElements[\cpBias][\element], compressorElements[\cpBias][\value])
+					, compressorElements[\cpThresh][\value],
+					75
 				).setAlignment(1, \center)
-				, compressorComposite
 				, VLayout(
+					compressorComposite
+					, HLayout(
+						VLayout (compressorElements[\cpTrim][\title], compressorElements[\cpTrim][\element], compressorElements[\cpTrim][\value])
+						, VLayout (compressorElements[\cpRatio][\title], compressorElements[\cpRatio][\element], compressorElements[\cpRatio][\value])
+						, VLayout (compressorElements[\cpAttack][\title], compressorElements[\cpAttack][\element], compressorElements[\cpAttack][\value])
+						, VLayout (compressorElements[\cpRelease][\title], compressorElements[\cpRelease][\element], compressorElements[\cpRelease][\value])
+						, VLayout (compressorElements[\cpGain][\title], compressorElements[\cpGain][\element], compressorElements[\cpGain][\value])
+					),
+				)
+				, VLayout(
+					VLayout (compressorElements[\cpKnee][\title], compressorElements[\cpKnee][\element], compressorElements[\cpKnee][\value])
+					, VLayout (compressorElements[\cpBias][\title], compressorElements[\cpBias][\element], compressorElements[\cpBias][\value])
+					, VLayout (compressorElements[\cpLookahead][\title], compressorElements[\cpLookahead][\element], compressorElements[\cpLookahead][\value])
+					, VLayout (compressorElements[\cpHpf][\title], compressorElements[\cpHpf][\element], compressorElements[\cpHpf][\value])
+					, 75
+				), VLayout(
 					compressorElements[\gainReduction][\title]
 					, compressorElements[\gainReduction][\element]
-				    ,VLayout (compressorElements[\cpLookahead][\title], compressorElements[\cpLookahead][\element], compressorElements[\cpLookahead][\value])
-				    ,VLayout (compressorElements[\cpTrim][\title], compressorElements[\cpTrim][\element], compressorElements[\cpTrim][\value])
+					, 75
 				).setAlignment(1, \center)
 			)
 			, 20
-			,HLayout(
-				VLayout (compressorElements[\cpRatio][\title], compressorElements[\cpRatio][\element], compressorElements[\cpRatio][\value])
-				, VLayout (compressorElements[\cpAttack][\title], compressorElements[\cpAttack][\element], compressorElements[\cpAttack][\value])
-				, VLayout (compressorElements[\cpRelease][\title], compressorElements[\cpRelease][\element], compressorElements[\cpRelease][\value])
-			    , VLayout (compressorElements[\cpGain][\title], compressorElements[\cpGain][\element], compressorElements[\cpGain][\value])
-				, VLayout (compressorElements[\cpHpf][\title], compressorElements[\cpHpf][\element], compressorElements[\cpHpf][\value])
 
-			)
 		);
 	}
 
