@@ -89,7 +89,7 @@ let superDirtMixerTarget = Target {
     oscplay = OSC "/SuperDirtMixer" Named {requiredArgs = ["orbit"]}
     oscmap = [(superDirtMixerTarget, [oscplay])]
 
-superDirtMixer <- startStream (defaultConfig {cCtrlPort = 6011}) oscmap
+superDirtMixer <- startStream (defaultConfig {cCtrlPort = 6010}) oscmap
 
 let x1 = streamReplace superDirtMixer 1 . (|< orbit 0)
     x2 = streamReplace superDirtMixer 2 . (|< orbit 1)
