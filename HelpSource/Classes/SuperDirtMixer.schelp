@@ -28,15 +28,13 @@ code::
 
 	    // You can adjust parameters before you use the ui
 		~mixer.setOrbitLabels(["d1 - Lead", "d2 - Bass", "d3 - Key", "d4 - Pad", "d5 - Arp", "d6 - Drums", "d7 - Rhytm Git", "d8 - Lead Git", "d9 - Strings", "d10 - FX", "d11 - Kick", "d12 - Cymbals", "d13 - Snare", "d14 - Toms"]);
-        ~mixer.setMasterBus(0)
+        ~mixer.setMasterBus(0);
+
+		// When you added your settings in you startup file, then you should be able to use the ui at any time in any differtent SuperCollider file.
+	    ~mixer.gui;
     }
 )
 
-(
-    // When you added your settings in you startup file, then you should be able to use the ui at any time in any differtent SuperCollider file.
-    ~mixer.gui
-
-)
 ::
 
 CLASSMETHODS::
