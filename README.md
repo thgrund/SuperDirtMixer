@@ -42,6 +42,16 @@ For the EQ of an orbit, this plugin is using EQui (https://github.com/thgrund/EQ
 - Files are stored in plain JSON format.
 - Reset all parameters to their default values.
 
+## Clean up before Upgrade
+
+If you already installed the SuperDirtMixer, then you need to remove the EQui Quark manually once. This is needed to switch to my fork, instead of using the original repository. This is how you achieve that: 
+
+1. Execute `Quarks.gui` in SuperCollider or open the Quarks ui under `Language/Quarks` 
+2. Search for `EQui` and select it
+3. Open the directory under `Local path` (should be inside of `downloaded-quarks`)
+4. Delete the `EQui` folder
+5. Close the Quarks window
+
 ## How to install it
 
 You can download the bundled zip from this GitHub repository, unpack it and install the Quark in SuperCollider. You can do this in SuperCollider via `Language -> Quarks -> Install a folder`.
@@ -73,6 +83,14 @@ And then you can render the gui with executing this in any SuperCollider file
 ```
 
 For more in depth configuration options you can have a look into the helpfile. This is accessable in SuperCollider when your cursor is on `SuperDirtMixer` and you press i.e. `Command + D` on MacOS. 
+
+## Preset management
+
+You can load and overwrite existing preset files within the SuperDirtMixer ui. However to add new preset files, you need to create an empty json file within you preset folder. The default one is the preset folder within the SuperDirtMixer Quark. 
+
+The SuperDirtMixer is only shipped with one single `Default.json` file.
+
+When you created a new file in your preset folder, then you need to restart the SuperDirtMixer. After the reload, you should have access to the newly created preset file.
 
 ## Control the mixer with TidalCycles
 
