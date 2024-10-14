@@ -318,7 +318,7 @@ CompressorUI : UIFactories {
 
 		uiKnobFactories.knobWithValueLabelFactory2(
 			compressorElements
-			, \cpTrim, "Pre-Gain",
+			, \cpTrim, "Trim",
 			{|value| value.lincurve(0, 1, 0, 60, curve: 4).round(1e-2)},
 			{|value| value.curvelin(0,60,0,1, curve: 4)},
 			"%dB"
@@ -361,7 +361,7 @@ CompressorUI : UIFactories {
 			, \cpHpf, "HPF",
 			{|value| value.linlin(0, 1, 10, 1000).round(1e-2)},
 			{|value| value.linlin(10,1000,0,1)},
-			"%Freq"
+			"%Hz"
 		);
 
 		this.updateCompressorUI();
