@@ -158,6 +158,14 @@ x1 $
 
 ```
 
+## Troubleshootings
+
+When there are issues during the first startup, then it's most likely that there is an issue with the dependand Quarks. Ensure that the correct Quarks are installed. For this you can check the Quarks list in SuperCollider via `Language -> Quarks -> Install a folder`. You should have these Quarks installed. If not, then install them manually:
+
+- EQui (MrReason fork): https://github.com/thgrund/EQui
+- SuperDirt v1.7.5+ or latest developer branch: https://github.com/musikinformatik/SuperDirt
+- JSONLib v0.1.0+: https://github.com/musikinformatik/JSONlib
+
 ## Shoutouts
 
 - Wouter Snoei for the MasterEQ which influenced the EQui

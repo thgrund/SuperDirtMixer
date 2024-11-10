@@ -1,7 +1,7 @@
 (
 	\name: 			"SuperDirtMixer",
-	\summary:		"Mixer for SuperDirt to provide mixing presets fo  TidalCycles. This includes global gain, pan, reverb, eq settings and compression for every orbit (indiviually).",
-	\author: 		"Thomas Grund",
+	\summary:		"Graphical mixer for SuperDirt. This includes global gain, pan, reverb, eq settings and compression for every orbit (indiviually).",
+	\author: 		"Thomas Grund (MrReason)",
 	\since: 		"2023",
 	\dependencies:  ["SuperDirt", "https://github.com/thgrund/EQui", "JSONlib"]
-)
+a
