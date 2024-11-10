@@ -65,7 +65,7 @@ CompressorUI : UIFactories {
 
 			this.updateGlobalEffect(activeOrbit);
 
-			handler.emitEvent(\updateUI);
+			this.updateCompressorUI();
 		});
 
 		compressorElements = Dictionary.new;

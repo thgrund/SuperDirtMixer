@@ -1,26 +1,10 @@
 /*
 Optional TODOs
 - [] Release everything when GUI is closed
+
 StageMaster
-- [x] Regler curve statt exp
-
 - [] GR Anzeige des Compressor auf Summe
-- [x] Limiter Level ist in dB
 - [] peak dB Anzeige auf Master
-
-Compressor
-
-- [x] Regeler in zwei Gruppen (kreativ, und essenziell)
-- [] HPF Label UI flakiness beheben
-
-EQ
-
-- [x] EQ Status (peak, filter etc.) Anzeige vergrößern
-
-Preset Management
-
-- [] Bessere und prominentere Dokumentation (für eigene Presets)
-- [x] MrReason Presets löschen
 
 */
 SuperDirtMixer {

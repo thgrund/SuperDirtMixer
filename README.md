@@ -9,7 +9,7 @@ For the EQ of an orbit, this plugin is using EQui (https://github.com/thgrund/EQ
 ## Requirements
 
 - [TidalCycles](https://github.com/tidalcycles/Tidal) v1.9.4+
-- [SuperDirt Quark](https://github.com/musikinformatik/SuperDirt) v1.7.3+ (latest develop branch version)
+- [SuperDirt Quark](https://github.com/musikinformatik/SuperDirt) v1.7.5+ (or latest develop branch version as lons as v1.7.5 is not released yet)
 
 ## Features
 
@@ -68,25 +68,23 @@ Pass this in your startup file after you installed it:
         // More SuperDirt ...
 
         // Initialize the SuperDirtMixer
-        ~mixer = SuperDirtMixer(~dirt, 6010);
+        ~mixer = SuperDirtMixer(~dirt);
 
         // You can adjust parameters before you use the ui
-        ~mixer.orbitLabels = ["d1 - Lead", "d2 - Bass", "d3 - Key", "d4 - Pad"];
-        ~mixer.enableMasterPeakRMS(0)
+        ~mixer.setOrbitLabels(["d1 - Lead", "d2 - Bass", "d3 - Key", "d4 - Pad"]);
+        ~mixer.setMasterBus(0);
+
+        // When you added your settings in you startup file, then you should be able to use the ui at any time in any differtent SuperCollider file.
+        ~mixer.gui;
     }
 )
-```
-
-And then you can render the gui with executing this in any SuperCollider file 
-```c
-~mixer.gui
 ```
 
 For more in depth configuration options you can have a look into the helpfile. This is accessable in SuperCollider when your cursor is on `SuperDirtMixer` and you press i.e. `Command + D` on MacOS. 
 
 ## Preset management
 
-You can load and overwrite existing preset files within the SuperDirtMixer ui. However to add new preset files, you need to create an empty json file within you preset folder. The default one is the preset folder within the SuperDirtMixer Quark. 
+You can load and overwrite existing preset files within the SuperDirtMixer ui. However to add new preset files, you need to create an empty json file within your preset folder. The default one is the preset folder within the SuperDirtMixer Quark. 
 
 The SuperDirtMixer is only shipped with one single `Default.json` file.
 
