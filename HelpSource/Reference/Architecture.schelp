@@ -1,0 +1,210 @@
+TITLE::SuperDirtMixer Architecture
+
+summary:: Mixer for SuperDirt to provide mixing presets for TidalCycles. This includes level indicators, gain, pan, reverb and eq settings for every orbit (indiviually).
+
+DESCRIPTION::
+The design approach are describing leverages several important concepts in computer science and software engineering. Here are some key theories and principles behind it:
+
+section::Design approaches
+
+subsection::1. Event-Driven Architecture
+
+Event-driven architecture (EDA) is a design paradigm where the flow of the program is determined by events—discrete changes in state. This approach allows for asynchronous communication between different parts of a system, improving decoupling and scalability.
+
+    Asynchronous Communication: Services can emit and respond to events without waiting for each other, leading to better performance and responsiveness.
+    Loose Coupling: Services do not need to know about each other; they only interact through events, reducing dependencies and making the system easier to maintain and extend.
+
+subsection::2. Observer Pattern
+
+The observer pattern is a behavioral design pattern where an object, known as the subject, maintains a list of its dependents, called observers, and notifies them of state changes, typically by calling one of their methods.
+
+    Decoupling: Observers (services) are decoupled from the subject (handler), promoting low coupling.
+    Reusability: Observers can be reused with different subjects without modification.
+    Scalability: New observers can be added without changing the subject.
+
+subsection::3. Mediator Pattern
+
+The mediator pattern defines an object that encapsulates how a set of objects interact. This pattern promotes loose coupling by preventing objects from referring to each other explicitly and allowing their interaction to be varied independently.
+
+    Centralized Control: The handler acts as a mediator, controlling the communication between services.
+    Simplified Communication: Services do not need to manage direct references to each other, simplifying their communication logic.
+
+subsection::4. Publish-Subscribe (Pub-Sub) Model
+
+The publish-subscribe pattern is a messaging pattern where senders (publishers) do not program messages to be sent directly to specific receivers (subscribers). Instead, published messages are categorized into classes without knowledge of which subscribers, if any, there may be.
+
+    Topic-Based Communication: Events are categorized by topics (event names), and subscribers register their interest in specific topics.
+    Dynamic Subscriptions: Subscribers can dynamically subscribe or unsubscribe to events, making the system flexible.
+
+subsection::5. Separation of Concerns
+
+Separation of concerns is a design principle for separating a computer program into distinct sections, such that each section addresses a separate concern. A concern is a set of information that affects the code of a computer program.
+
+    Modularity: Each service handles specific types of events, making the system modular and easier to manage.
+    Maintainability: Changes to one part of the system do not affect others, enhancing maintainability.
+
+subsection::6. Single Responsibility Principle (SRP)
+
+The single responsibility principle states that a class should have only one reason to change, meaning that a class should have only one job or responsibility.
+
+    Focused Classes: Each service class has a single responsibility (handling specific events), adhering to SRP.
+
+section::Minimal dispatcher example
+
+For this we need to introduce a new Class EventDispatcher and Handler. The Handler deligates the events and the event dispatcher knows, that service is subscribed to which event.
+
+code::
+// Event Dispatcher Class
+EventDispatcher {
+    var events;
+
+    *new {
+        ^super.new.init;
+    }
+
+    init {
+        events = IdentityDictionary.new;
+    }
+
+    // Method to subscribe to an event
+    subscribe { |eventName, action|
+        events[eventName] = events[eventName] ?? { Set.new };
+        events[eventName].add(action);
+    }
+
+    // Method to emit an event
+    emit { |eventName, eventData|
+        events[eventName].do { |action|
+            action.value(eventData);
+        };
+    }
+}
+
+// Handler Class
+Handler {
+    var dispatcher;
+
+    *new {
+        ^super.new.init;
+    }
+
+    init {
+        dispatcher = EventDispatcher.new;
+    }
+
+    // Method to emit events
+    emitEvent { |eventName, eventData|
+        "Emitting event % with data: %".format(eventName, eventData).postln;
+        dispatcher.emit(eventName, eventData);
+    }
+
+    // Method to subscribe services to events
+    subscribe { |service, eventName|
+        "Subscribing service % to event %".format(service, eventName).postln;
+        dispatcher.subscribe(eventName, { |data|
+            "Delegating event % with data: % to service %".format(eventName, data, service).postln;
+            service.handleEvent(eventName, data);
+        });
+    }
+}
+
+// Service Classes
+ServiceA {
+    var handler;
+
+    *new { |handler|
+        ^super.newCopyArgs(handler);
+    }
+
+    handleEvent { |eventName, eventData|
+        ("ServiceA received % with data: %".format(eventName, eventData)).postln;
+    }
+}
+
+ServiceB {
+    var handler;
+
+    *new { |handler|
+        ^super.newCopyArgs(handler);
+    }
+
+    handleEvent { |eventName, eventData|
+        ("ServiceB received % with data: %".format(eventName, eventData)).postln;
+
+        // Triggering another event from ServiceB
+        if (eventName == \eventB) {
+            handler.emitEvent(\eventD, "Data for Event D from ServiceB");
+        }
+    }
+}
+
+ServiceC {
+    var handler;
+
+    *new { |handler|
+        ^super.newCopyArgs(handler);
+    }
+
+    handleEvent { |eventName, eventData|
+        ("ServiceC received % with data: %".format(eventName, eventData)).postln;
+    }
+}
+::
+
+This can be called with this code:
+
+code::
+(
+var handler = Handler.new;
+
+var serviceA = ServiceA.new(handler);
+var serviceB = ServiceB.new(handler);
+var serviceC = ServiceC.new(handler);
+
+// Subscribe services to events
+handler.subscribe(serviceA, \eventA);
+handler.subscribe(serviceB, \eventA);
+handler.subscribe(serviceB, \eventB);
+handler.subscribe(serviceC, \eventA);
+handler.subscribe(serviceC, \eventC);
+handler.subscribe(serviceA, \eventD);  // Subscribing ServiceA to eventD
+handler.subscribe(serviceC, \eventD);  // Subscribing ServiceC to eventD
+
+// Emit events
+handler.emitEvent(\eventA, "Data for Event A");
+handler.emitEvent(\eventB, "Data for Event B");
+handler.emitEvent(\eventC, "Data for Event C");
+)
+
+/*
+Subscribing service a ServiceA to event eventA
+Subscribing service a ServiceB to event eventA
+Subscribing service a ServiceB to event eventB
+Subscribing service a ServiceC to event eventA
+Subscribing service a ServiceC to event eventC
+Subscribing service a ServiceA to event eventD
+Subscribing service a ServiceC to event eventD
+
+Emitting event eventA with data: Data for Event A
+Delegating event eventA with data: Data for Event A to service a ServiceC
+ServiceC received eventA with data: Data for Event A
+Delegating event eventA with data: Data for Event A to service a ServiceA
+ServiceA received eventA with data: Data for Event A
+Delegating event eventA with data: Data for Event A to service a ServiceB
+ServiceB received eventA with data: Data for Event A
+
+Emitting event eventB with data: Data for Event B
+Delegating event eventB with data: Data for Event B to service a ServiceB
+ServiceB received eventB with data: Data for Event B
+
+Emitting event eventD with data: Data for Event D from ServiceB
+Delegating event eventD with data: Data for Event D from ServiceB to service a ServiceC
+ServiceC received eventD with data: Data for Event D from ServiceB
+Delegating event eventD with data: Data for Event D from ServiceB to service a ServiceA
+ServiceA received eventD with data: Data for Event D from ServiceB
+
+Emitting event eventC with data: Data for Event C
+Delegating event eventC with data: Data for Event C to service a ServiceC
+ServiceC received eventC with data: Data for Event C
+*/
+::

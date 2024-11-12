@@ -1,9 +1,10 @@
 TITLE:: SuperDirtMixer
 summary:: Mixer for SuperDirt to provide mixing presets for TidalCycles. This includes level indicators, gain, pan, reverb and eq settings for every orbit (indiviually).
 categories:: Live Coding
+related:: Reference/Architecture
 
 DESCRIPTION::
-This is a mixer ui was created for the sound engine strong::SuperDirt:: link::https://github.com/musikinformatik/SuperDirt:: for the strong::TidalCycles:: link::http://tidalcycles.org/:: programming language. The main motivation of this mixer was to get rid of using a DAW like Ableton in a live coding setup, because the author just used it for mixing a live setup. This mixer helps to realize tonal depth, clean frequency separation and a stereo panorama and makes this easily accessible in SuperDirt.
+This is a mixer ui was created for the sound engine strong::SuperDirt:: link::https://github.com/musikinformatik/SuperDirt:: for the strong::TidalCycles:: link::http://tidalcycles.org/:: programming language. The main motivation of this mixer was to get rid of using a DAW like Ableton in a live coding setup, because the author just used it for mixing a live setup.  This mixer helps to realize tonal depth, clean frequency separation, signal compression and a stereo panorama and makes this easily accessible in SuperDirt..
 In general this mixer overwrites the default values of the orbits defaultParentEvents. This means i.e. that it allows to change the value for gain from 1.0 to a different value from 0 to 1.5. These defaultParentEvent values will be used until they get overwritten on the TidalCycles side.
 
 For the EQ of an orbit, this plugin is using EQui (link::https://github.com/muellmusik/EQui::). For this it's needed to add some additional values to the defaultParentEvent to store and change the EQui parameters which will be done during the initialisation of this mixer. The eq functionality was added as a global effect to every orbit. This allows you to change the eq parameters for every orbit and still use all the other filter like hpf or lpf.
@@ -23,19 +24,17 @@ code::
 	    // More SuperDirt ...
 
 	    // Initialize the SuperDirtMixer
-	    ~mixer = SuperDirtMixer(~dirt, 6010);
+	    ~mixer = SuperDirtMixer(~dirt);
 
 	    // You can adjust parameters before you use the ui
-	    ~mixer.orbitLabels = ["d1 - Lead", "d2 - Bass", "d3 - Key", "d4 - Pad", "d5 - Arp", "d6 - Drums", "d7 - Rhytm Git", "d8 - Lead Git", "d9 - Strings", "d10 - FX", "d11 - Kick", "d12 - Cymbals", "d13 - Snare", "d14 - Toms"];
-        ~mixer.enableMasterPeakRMS(0)
+		~mixer.setOrbitLabels(["d1 - Lead", "d2 - Bass", "d3 - Key", "d4 - Pad", "d5 - Arp", "d6 - Drums", "d7 - Rhytm Git", "d8 - Lead Git", "d9 - Strings", "d10 - FX", "d11 - Kick", "d12 - Cymbals", "d13 - Snare", "d14 - Toms"]);
+        ~mixer.setMasterBus(0);
+
+		// When you added your settings in you startup file, then you should be able to use the ui at any time in any differtent SuperCollider file.
+	    ~mixer.gui;
     }
 )
 
-(
-    // When you added your settings in you startup file, then you should be able to use the ui at any time in any differtent SuperCollider file.
-    ~mixer.gui
-
-)
 ::
 
 CLASSMETHODS::
@@ -60,21 +59,21 @@ SUBSECTION:: UI configurations
 METHOD:: disableMasterPeakRMS
 This will reset the master audio bus and remove the level indicators from the ui.
 
-METHOD:: enableMasterPeakRMS
-This will render the level indicator for a master audio bus. This can be the sum of what you will here on a stereo hardware output.
+METHOD:: setMasterBus
+This will render the level indicator for a master audio bus and enables the stage master section. This represents the sum of what you will here on a stereo hardware output.
 
 ARGUMENT:: masterBus
 The recommendation would be to use the output bus that will be used for the stereo hardware output. In most cases this should be simply 0 or can be accessed by Bus.new.
 
-METHOD::orbitLabels
+METHOD::setOrbitLabels
 This is basically an array with the length of ~dirt.orbits wich allows you to change the label of each orbit controls section.
 
 code::
 	// Change the label of each orbit
-	~mixer.orbitLabels = ["d1 - Lead", "d2 - Bass", "d3 - Key", "d4 - Pad", "d5 - Arp", "d6 - Drums", "d7 - Rhytm Git", "d8 - Lead Git", "d9 - Strings", "d10 - FX", "d11 - Kick", "d12 - Cymbals", "d13 - Snare", "d14 - Toms"];
+	~mixer.setOrbitLabels(["d1 - Lead", "d2 - Bass", "d3 - Key", "d4 - Pad", "d5 - Arp", "d6 - Drums", "d7 - Rhytm Git", "d8 - Lead Git", "d9 - Strings", "d10 - FX", "d11 - Kick", "d12 - Cymbals", "d13 - Snare", "d14 - Toms"]);
 
 	// Change the label of a specific orbit
-	~mixer.orbitLabels.put(4, "d5 - Arp");
+	~dirt.orbits[4].set(\label, "d5 - Arp");
 ::
 
 SUBSECTION:: Reverb FX
@@ -98,57 +97,11 @@ need differ. In the custom VST example below, the value \reverb will be used ins
 SUBSECTION:: Communication with TidalCycles
 This mixer ui is able to send OSC messages to TidalCycles. This will mainly be used to solo or mute orbits. After the mixer was initialized, it automatically trys to establish a connection on location on the port 6010 (TidalCycles default value).
 
-METHOD:: tidalNetAddr
-This method allows to overwrite the default NetAddr to send osc messages to TidalCycles.
-
-code::
-~mixer.tidalNetAddr = NetAddr.new("127.0.0.1", 12345);
-::
-
 
 SUBSECTION:: Preset management
 
 METHOD:: presetPath
 This is the path to the preset folder. The path is always relative to the source code of the SuperDirtMixer. This will be used to load and save presets and displays all the files as available presets in the ui. The default value is "../presets".
-
-METHOD:: loadPreset
-Loads the preset and sets all the orbit defaultParentEvent values to what is defined in the passed preset file.
-
-note::
-Right now this will unfortunately not reload the equalizer settings.
-::
-
-ARGUMENT:: presetFile
-This is the file that is located to the relative path that was specified at link::Classes/SuperDirtMixer#-presetPath::.
-
-METHOD:: savePreset
-Saves the current orbit defaultParentEvent values to the passed preset file.
-
-ARGUMENT:: presetFile
-This is the file that is located to the relative path that was specified at link::Classes/SuperDirtMixer#-presetPath::.
-
-METHOD:: receivePresetLoad
-This method will be called whenever you load a preset in the ui. This will help you to extend presets with additional informations. The argument of the callback function is the name of the preset file that was loaded.
-
-code::
-(
-    ~mixer.receivePresetLoad = ({
-	    |presetFile| presetFile.postln;
-    });
-)
-::
-
-SUBSECTION:: Direct feature access (without using the UI)
-
-METHOD:: startEQEffect
-You can use this method to run the eq global effects for every orbit manually. This will be used by the link::Classes/SuperDirtMixer#-gui:: function internally to start the eq effects.
-
-METHOD:: stopEQEffect
-You can use this method to stop the eq global effects for every orbit manually. This will be used by the link::Classes/SuperDirtMixer#-gui:: function internally to stop the eq effects when you close the ui window.
-
-METHOD:: initDefaultParentEvents
-In general this is used internally but you can use it to reset every value in each orbit.
-
 
 EXAMPLES::
 
