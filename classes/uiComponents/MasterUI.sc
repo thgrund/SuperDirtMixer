@@ -73,10 +73,6 @@ MasterUI : UIFactories {
 
 		this.changeButtonsStatus(false);
 
-		if (synth.isNil, {
-			synth = Synth.newPaused(\stageMaster, target: RootNode(~dirt.server), addAction: \addToTail);
-		});
-
 		this.addMasterLevelOSCFunc;
 	}
 
@@ -102,6 +98,11 @@ MasterUI : UIFactories {
 			    stageMaster[\live][\element].states_([["Live", Color.grey(0.4), Color.white]]);
 		    },{
 			    if (synth.isNil.not, {synth.set(\out, prMasterBus)})
+		    });
+
+			if (synth.isNil && currentEnvironment[\SuperDirtMixer][\wasStageMasterSynthCreated] == false, {
+			    synth = Synth.newPaused(\stageMaster, target: RootNode(~dirt.server), addAction: \addToTail);
+			    currentEnvironment[\SuperDirtMixer].put(\wasStageMasterSynthCreated, true);
 		    });
 
 			^VLayout(

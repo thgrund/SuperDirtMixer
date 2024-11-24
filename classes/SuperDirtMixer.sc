@@ -1,6 +1,4 @@
 /*
-Optional TODOs
-- [] Release everything when GUI is closed
 
 StageMaster
 - [] GR Anzeige des Compressor auf Summe
@@ -17,14 +15,13 @@ SuperDirtMixer {
 	var reverbNativeSize = 0.95;
 	var oscMasterLevelSender;
 	var defaultParentEvent, defaultParentEventKeys;
-	var eventHandler;
+	var freeAction, addRemoteControlAction;
 
 	*new { |dirt|
 		^super.newCopyArgs(dirt).init
 	}
 
 	/* INITIALIZATION */
-
 	init {
 		try {
 			"---- initialize SuperDirtMixer ----".postln;
@@ -34,8 +31,6 @@ SuperDirtMixer {
 
 			defaultParentEvent = Dictionary.new;
 
-			eventHandler = EventHandler.new;
-
 			dirt.startSendRMS;
 
 			dirt.orbits.do({
@@ -43,10 +38,17 @@ SuperDirtMixer {
 				orbit.set(\label, "d" ++ (i+1))
 			});
 
+			// Additional app state
+			currentEnvironment.put(\SuperDirtMixer
+				, Dictionary[
+					\wasRemoteControlAdded -> false,
+					\wasStageMasterSynthCreated -> false,
+				]
+			);
+
 			"SuperDirtMixer was successfully initialized".postln;
 		}
 	}
-
 
 	setOrbitLabels {
 		|labels|
@@ -108,13 +110,23 @@ SuperDirtMixer {
 		oscMasterLevelSender.free;
 	}
 
+	free {
+		freeAction.value();
+	}
+
+	addRemoteControl {
+		addRemoteControlAction.value();
+	}
+
+
 	/* GUI */
 	gui {
 		/* DECLARE GUI VARIABLES */
 		var window, v;// local machine
+		var eventHandler = EventHandler.new;
 		var masterUI = MasterUI.new(eventHandler);
 		var mixerUI = MixerUI.new(eventHandler, dirt.orbits);
-		var utilityUI =  UtilityUI.new(eventHandler, dirt.orbits, presetPath);
+		var utilityUI =  UtilityUI.new(eventHandler, dirt.orbits, presetPath, defaultParentEvent);
 		var equalizerUI = EqualizerUI.new(eventHandler, dirt.orbits);
 		var midiControlUI = MidiControlUI.new(switchControlButtonEvent, midiInternalOut);
 		var compressorUI = CompressorUI.new(eventHandler, dirt.orbits);
@@ -147,12 +159,26 @@ SuperDirtMixer {
 
 
 		//eventHandler.printEventNames;
-		eventHandler.emitEvent(\resetAll);
 		eventHandler.emitEvent(\setActiveOrbit, dirt.orbits[0]);
 
-		window.onClose_({
+		freeAction = {
 			eventHandler.emitEvent(\releaseAll);
 			dirt.stopSendRMS;
+		};
+
+		addRemoteControlAction = {
+			eventHandler.emitEvent(\addRemoteControl);
+		};
+
+		if (currentEnvironment[\SuperDirtMixer][\wasRemoteControlAdded] == false, {
+			eventHandler.emitEvent(\addRemoteControl);
+			currentEnvironment[\SuperDirtMixer].put(\wasRemoteControlAdded, true);
+		});
+
+		window.onClose_({
+			eventHandler.emitEvent(\destroy);
+			//eventHandler.emitEvent(\releaseAll);
+			//dirt.stopSendRMS;
 		});
 		window.front;
 	}

@@ -29,7 +29,7 @@ CompressorUI : UIFactories {
 		ratio = 4; // Compression ratio
 
 		defaultParentEvent = [
-			\activeCompressor, 0, \cpAttack, 0.01, \cpRelease, 0.1, \cpThresh, threshold, \cpTrim, 0, \cpGain, 0, \cpRatio, ratio, \cpLookahead, 0.0, \cpSaturate, 1, \cpHpf, 50, \cpKnee, 0, \cpBias, 0
+			\activeCompressor, 0, \cpAttack, 0.01, \cpRelease, 0.1, \cpThresh, threshold, \cpTrim, 0.0, \cpGain, 0.0, \cpRatio, ratio, \cpLookahead, 0.0, \cpSaturate, 1, \cpHpf, 50, \cpKnee, 0.0, \cpBias, 0.0
 	    ];
 
 		// Parameters for the compressor
@@ -39,12 +39,14 @@ CompressorUI : UIFactories {
 		width = 380;
 
 		if (orbits.isNil.not, {
+
 			activeOrbit = orbits[0];
 			this.setOrbits(defaultParentEvent);
 
 			orbits.do({|orbit|
 				globalEffects.addGlobalEffect(
 				orbit, GlobalDirtEffect(\dirt_global_compressor, [\activeCompressor, \cpAttack, \cpRelease, \cpThresh, \cpTrim, \cpGain, \cpRatio, \cpLookahead, \cpSaturate, \cpHpf, \cpKnee, \cpBias]))});
+
 		});
 
 		if (handler.isNil.not, {
@@ -52,8 +54,10 @@ CompressorUI : UIFactories {
 			handler.subscribe(this, \updateUI);
 			handler.subscribe(this, \resetAll);
 			handler.subscribe(this, \releaseAll);
+			handler.subscribe(this, \addRemoteControl);
 
 			handler.emitEvent(\extendDefaultParentEvent, defaultParentEvent);
+
 		});
 
 		bypassButton = Button.new.string_("Bypass").maxWidth_(75);
@@ -70,14 +74,12 @@ CompressorUI : UIFactories {
 
 		compressorElements = Dictionary.new;
 
-		uiKnobFactories = UIKnobFactories(activeOrbit);
-
-		this.addSynthListener;
-		this.addRemoteControlListener;
+		uiKnobFactories = UIKnobFactories.new(activeOrbit);
 	}
 
 	handleEvent { |eventName, eventData|
 		if (eventName == \setActiveOrbit, {
+
 			activeOrbit = eventData;
 
 			uiKnobFactories.activeOrbit = activeOrbit;
@@ -96,12 +98,19 @@ CompressorUI : UIFactories {
 
 		if (eventName == \resetAll, {
 			this.setOrbits(defaultParentEvent);
+
 			orbits.do({|orbit| this.updateGlobalEffect(orbit)});
+
 			this.updateCompressorUI();
 		});
 
 		if (eventName == \releaseAll, {
 			orbits.do({|orbit| globalEffects.releaseGlobalEffect(orbit, \dirt_global_compressor)});
+		});
+
+		if (eventName == \addRemoteControl, {
+			this.addSynthListener;
+			this.addRemoteControlListener;
 		});
     }
 
@@ -119,7 +128,10 @@ CompressorUI : UIFactories {
 			this.setBypassButtonState(bypassButton, false, activeOrbit, \activeCompressor);
 
 			compressorElements.keysValuesDo {|key, components|
+
 				if (activeOrbit.get(key).isNil.not, {
+
+
 					components[\element].valueAction =
 					    components[\orbitToKnobValue].value(activeOrbit.get(key));
 
@@ -135,7 +147,14 @@ CompressorUI : UIFactories {
 	}
 
 	setOrbits { |pairs|
-		orbits.do(_.set(*pairs))
+		pairs.pairsDo { |key, val|
+			orbits.do({
+				| orbit |
+				if (orbit.defaultParentEvent[key].isNil, {
+					orbit.set(key, val);
+				});
+			})
+		};
 	}
 
 	// Function to draw the grid
@@ -229,6 +248,12 @@ CompressorUI : UIFactories {
 		var gainReductionSlider;
 		var thresholdLabel;
 		var defaultParentEventDict = defaultParentEvent.asDict;
+		var valueWithDefault = {
+			|key, value|
+			var valueWithDefault;
+
+			if (value.isNil, {valueWithDefault = defaultParentEventDict[key]}, {valueWithDefault = value});
+		};
 
 		this.setBypassButtonState(bypassButton, false, activeOrbit, \activeCompressor);
 
@@ -263,11 +288,13 @@ CompressorUI : UIFactories {
 		//.value_(threshold.linlin(minThreshold, 0, 0, 1))
 		.value_(1)
 		.action_({ |slider|
-			threshold = slider.value.linlin(0, 1, minThreshold, 0);
-			activeOrbit.set(\cpThresh, threshold);
-			thresholdLabel.string_("%dB".format(threshold.round(1e-1)));
+			if (slider.value.notNil, {
+				threshold = slider.value.linlin(0, 1, minThreshold, 0);
+				activeOrbit.set(\cpThresh, threshold);
+				thresholdLabel.string_("%dB".format(threshold.round(1e-1)));
 
-			comporessorView.refresh;
+				comporessorView.refresh;
+			});
 		});
 
 		compressorElements.put(\cpThresh,
@@ -275,7 +302,7 @@ CompressorUI : UIFactories {
 				\element, thresholdSlider
 				, \title, StaticText.new.string_("T").align_(\center).maxHeight_(15)
 				, \value, thresholdLabel
-				, \orbitToKnobValue, {|value| value.linlin(minThreshold, 0, 0, 1)}
+				, \orbitToKnobValue, {|value| if (value.notNil, {value.linlin(minThreshold, 0, 0, 1)})}
 			])
 		);
 
@@ -289,7 +316,7 @@ CompressorUI : UIFactories {
 		uiKnobFactories.knobWithValueLabelFactory2(
 			compressorElements
 			, \cpRatio, "Ratio",
-			{|value| value.lincurve(0,1,1,20, curve: 4).round(1e-2) },
+			{|value| valueWithDefault.value(\cpRatio, value).lincurve(0,1,1,20, curve: 4).round(1e-2)},
 			{|value| (value).curvelin(1,20,0,1, curve: 4)},
 			"%",
 		    {
@@ -302,7 +329,7 @@ CompressorUI : UIFactories {
 		uiKnobFactories.knobWithValueLabelFactory2(
 			compressorElements
 			, \cpAttack, "Attack",
-			{|value| value.lincurve(0,1,1,11, curve: 4).round(1e-2) - 1},
+			{|value| valueWithDefault.value(\cpAttack, value).lincurve(0,1,1,11, curve: 4).round(1e-2) - 1},
 			{|value| (value + 1).curvelin(1,11,0,1, curve: 4)},
 			"%ms"
 		);
@@ -310,7 +337,7 @@ CompressorUI : UIFactories {
 		uiKnobFactories.knobWithValueLabelFactory2(
 			compressorElements
 			, \cpRelease, "Release",
-			{|value| value.lincurve(0,1,1,11, curve: 4).round(1e-2) - 1},
+			{|value| valueWithDefault.value(\cpRelease, value).lincurve(0,1,1,11, curve: 4).round(1e-2) - 1},
 			{|value| (value + 1).curvelin(1,11,0,1, curve: 4)},
 			"%ms"
 		);
@@ -319,7 +346,7 @@ CompressorUI : UIFactories {
 		uiKnobFactories.knobWithValueLabelFactory2(
 			compressorElements
 			, \cpTrim, "Trim",
-			{|value| value.lincurve(0, 1, 0, 60, curve: 4).round(1e-2)},
+			{|value| valueWithDefault.value(\cpTrim, value).lincurve(0, 1, 0, 60, curve: 4).round(1e-2)},
 			{|value| value.curvelin(0,60,0,1, curve: 4)},
 			"%dB"
 		);
@@ -327,7 +354,7 @@ CompressorUI : UIFactories {
 		uiKnobFactories.knobWithValueLabelFactory2(
 			compressorElements
 			, \cpGain, "Gain",
-			{|value| value.lincurve(0, 1, 0, 60, curve: 4).round(1e-2)},
+			{|value| valueWithDefault.value(\cpGain, value).lincurve(0, 1, 0, 60, curve: 4).round(1e-2)},
 			{|value| value.curvelin(0,60,0,1, curve: 4)},
 			"%dB"
 		);
@@ -335,15 +362,15 @@ CompressorUI : UIFactories {
 		uiKnobFactories.knobWithValueLabelFactory2(
 			compressorElements
 			, \cpLookahead, "Lookahead",
-			{|value| value.round(1e-2)},
-			{|value| value},
+			{|value| valueWithDefault.value(\cpLookahead, value).round(1e-2)},
+			{|value| value.lincurve(0, 1, 0, 60, curve: 4).round(1e-2)},
 			"%"
 		);
 
 		uiKnobFactories.knobWithValueLabelFactory2(
 			compressorElements
 			, \cpKnee, "Knee",
-			{|value| value.linlin(0, 1, 0, 10).round(1e-2)},
+			{|value| valueWithDefault.value(\cpKnee, value).linlin(0, 1, 0, 10).round(1e-2)},
 			{|value| value.linlin(0,10,0,1)},
 			"%"
 		);
@@ -351,7 +378,7 @@ CompressorUI : UIFactories {
 		uiKnobFactories.knobWithValueLabelFactory2(
 			compressorElements
 			, \cpBias, "Bias",
-			{|value| value.linlin(0, 1, 0, 0.5).round(1e-2)},
+			{|value| valueWithDefault.value(\cpBias, value).linlin(0, 1, 0, 0.5).round(1e-2)},
 			{|value| value.linlin(0,0.5,0,1)},
 			"%"
 		);
@@ -359,7 +386,7 @@ CompressorUI : UIFactories {
 		uiKnobFactories.knobWithValueLabelFactory2(
 			compressorElements
 			, \cpHpf, "HPF",
-			{|value| value.linlin(0, 1, 10, 1000).round(1e-2)},
+			{|value| valueWithDefault.value(\cpHpf, value).linlin(0, 1, 10, 1000).round(1e-2)},
 			{|value| value.linlin(10,1000,0,1)},
 			"%Hz"
 		);

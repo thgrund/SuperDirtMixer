@@ -30,6 +30,8 @@ EqualizerUI : UIFactories{
 			handler.subscribe(this, \updateUI);
 			handler.subscribe(this, \resetAll);
 			handler.subscribe(this, \releaseAll);
+			handler.subscribe(this, \addRemoteControl);
+			handler.subscribe(this, \destroy);
 
 			handler.emitEvent(\extendDefaultParentEvent, defaultParentEvent);
 		});
@@ -69,9 +71,6 @@ EqualizerUI : UIFactories{
 			this.setOrbits(defaultParentEvent);
 			this.setEQuiValues(activeOrbit);
 		});
-
-
-		this.addRemoteControlListener;
 	}
 
 	handleEvent { |eventName, eventData|
@@ -144,6 +143,15 @@ EqualizerUI : UIFactories{
 			orbits.do({|orbit| globalEffects.releaseGlobalEffect(orbit, \dirt_global_eq)});
 			freqScope.kill;
 		});
+
+		if (eventName == \addRemoteControl, {
+			this.addRemoteControlListener;
+		});
+
+		if (eventName == \destroy, {
+			freqScope.kill;
+		});
+
     }
 
 	prInitGlobalEffect {
@@ -252,7 +260,14 @@ EqualizerUI : UIFactories{
 	}
 
 	setOrbits { |pairs|
-		orbits.do(_.set(*pairs))
+		pairs.pairsDo { |key, val|
+			orbits.do({
+				| orbit |
+				if (orbit.defaultParentEvent[key].isNil, {
+					orbit.set(key, val);
+				});
+			})
+		};
 	}
 
 	createUI {

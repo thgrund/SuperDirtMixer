@@ -8,6 +8,8 @@ MixerUI : UIFactories {
     var tidalNetAddr;
 	var defaultParentEvent;
 
+	var panListener;
+
 	*new { | initHandler, initOrbits|
         ^super.new.init(initHandler, initOrbits);
     }
@@ -28,7 +30,7 @@ MixerUI : UIFactories {
 			var globalEffects = GlobalEffects.new;
 
 			activeOrbit = orbits[0];
-			this.setOrbits(defaultParentEvent);
+			//this.setOrbits(defaultParentEvent);
 
 			orbits.do { |orbit|
 				globalEffects.addGlobalEffect(orbit, GlobalDirtEffect(\dirt_master_mix, [\masterGain, \gainControlLag]), true);
@@ -41,13 +43,9 @@ MixerUI : UIFactories {
 			handler.subscribe(this, \resetAll);
 			handler.subscribe(this, \updateUI);
 			handler.subscribe(this, \releaseAll);
+			handler.subscribe(this, \addRemoteControl);
 		});
 
-		this.addMeterResponseOSCFunc;
-		this.addPanListener;
-		this.addGainListener;
-		this.addReverbListener;
-		this.addRemoteControlListener;
     }
 
 	handleEvent { |eventName, eventData|
@@ -59,7 +57,8 @@ MixerUI : UIFactories {
 				guiElements[item.orbitIndex][\masterGain][\value].value_(item.get(\masterGain));
 				guiElements[item.orbitIndex][\reverb][\element].value_(item.get(reverbVariableName));
 			});
-		});
+		};
+		);
 
 		if (eventName == \resetAll, {
 			orbits.do({|item|
@@ -75,10 +74,22 @@ MixerUI : UIFactories {
 			var globalEffects = GlobalEffects.new;
 			orbits.do({|orbit| globalEffects.releaseGlobalEffect(orbit, \dirt_master_mix )});
 		});
+
+		if (eventName == \addRemoteControl, {
+			this.addRemoteControlListener;
+			this.addMeterResponseOSCFunc;
+		});
     }
 
 	setOrbits { |pairs|
-		orbits.do(_.set(*pairs))
+		pairs.pairsDo { |key, val|
+			orbits.do({
+				| orbit |
+				if (orbit.defaultParentEvent[key].isNil, {
+					orbit.set(key, val);
+				});
+			})
+		};
 	}
 
     createUI {
@@ -166,7 +177,7 @@ MixerUI : UIFactories {
 				, \eq, Dictionary.newFrom([\element, eqButton])
 			]);
 
-			guiElements.add(newOrbitElements);
+		    guiElements.add(newOrbitElements);
 
 			this.orbitLevelIndicators.add(Array.fill(~dirt.numChannels, {LevelIndicator.new.maxWidth_(12).drawsPeak_(true).warning_(0.9).critical_(1.0)}));
 
@@ -226,47 +237,6 @@ MixerUI : UIFactories {
 				}.defer;
 			}, ("/rms")).fix;
 	}
-
-	addPanListener { OSCFunc ({|msg|
-				{
-				    var orbitIndex = msg[1];
-				    var value     = msg[2];
-
-				    orbits.at(orbitIndex).set(\pan, value.linlin(0,1,0,1.0));
-				    guiElements[orbitIndex][\pan][\element].value_(orbits.at(orbitIndex).get(\pan));
-					guiElements[orbitIndex][\pan][\value].value_(orbits.at(orbitIndex).get(\pan));
-			}.defer;
-	    }, ("/SuperDirtMixer/pan"), recvPort: 57120).fix;
-	}
-
-	addGainListener { OSCFunc ({|msg|
-				{
-				    var orbitIndex = msg[1];
-				    var value     = msg[2];
-
-				    orbits.at(orbitIndex).set(\masterGain, value.linlin(0,2,0,2));
-					guiElements[orbitIndex][\masterGain][\element].value_((orbits.at(orbitIndex).get(\masterGain) + 1).curvelin(1,3, 0,1, curve: 3));
-					guiElements[orbitIndex][\masterGain][\value].value_(orbits.at(orbitIndex).get(\masterGain));
-			}.defer;
-	    }, ("/SuperDirtMixer/masterGain"), recvPort: 57120).fix;
-	}
-
-	addReverbListener {
-
-		^OSCFunc ({|msg|
-				{
-					try {
-					    var orbitIndex = msg[1];
-				        var value      = msg[2];
-
-				        orbits.at(orbitIndex).set(reverbVariableName, value.linlin(0,1,0,1.0));
-					    guiElements[orbitIndex][\reverb][\element].value_(orbits.at(orbitIndex).get(reverbVariableName));
-
-					} { |error| };
-
-			}.defer;
-	    }, ("/SuperDirtMixer/reverb"), recvPort: 57120).fix;
-    }
 
 	addRemoteControlListener { OSCFunc ({|msg| {
 		var event = ();

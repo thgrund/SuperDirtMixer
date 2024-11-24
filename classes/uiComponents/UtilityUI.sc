@@ -4,16 +4,16 @@ UtilityUI {
 	var presetListView, presetFile, presetFiles, presetPath;
 	var handler;
 	var orbits;
-	var defaultParentEvents;
+	var defaultParentEvent;
 
-	*new { | initHandler, initOrbits, initPresetPath|
-        ^super.new.init(initHandler, initOrbits, initPresetPath)
+	*new { | initHandler, initOrbits, initPresetPath, initDefaultParentEvent|
+        ^super.new.init(initHandler, initOrbits, initPresetPath, initDefaultParentEvent)
     }
 
-    init { |initHandler, initOrbits, initPresetPath|
+    init { |initHandler, initOrbits, initPresetPath, initDefaultParentEvent|
 		handler = initHandler;
 		orbits = initOrbits;
-		defaultParentEvents = ();
+		defaultParentEvent = initDefaultParentEvent;
 		presetPath = initPresetPath;
 		presetFile = 'Default.json';
 
@@ -41,7 +41,7 @@ UtilityUI {
 	handleEvent { |eventName, eventData|
 		if (eventName == \extendDefaultParentEvent, {
 			eventData.pairsDo { |key, val|
-				defaultParentEvents.put(key, val)
+				defaultParentEvent.put(key, val)
 			};
 		});
     }
@@ -63,7 +63,7 @@ UtilityUI {
 	    defaultEvents.do({
 		     arg defaultEvent, index;
 
-			defaultParentEvents.keysValuesDo({|key, val|
+			defaultParentEvent.keysValuesDo({|key, val|
 				if (defaultEvent.keys.includes(key) == false, {defaultEvent.put(key, val)})
 			});
 
@@ -80,7 +80,7 @@ UtilityUI {
 	         arg orbit;
   			 var presetEvent = ();
 
-			 defaultParentEvents.keys.do({|eventKey| presetEvent.put(eventKey, orbit.get(eventKey)) });
+			 defaultParentEvent.keys.do({|eventKey| presetEvent.put(eventKey, orbit.get(eventKey)) });
 
 			 orbitPresets.add(presetEvent);
         });

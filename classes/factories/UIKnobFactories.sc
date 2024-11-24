@@ -55,7 +55,8 @@ UIKnobFactories {
 
 		    parent[key].put(\element,
 			    Knob().value_(orbitToKnobValue.value(activeOrbit.get(key))).action_({|a|
-				   var orbitValue = parent[key][\knobToOrbitValue].value(a.value);
+				   var orbitValue;
+				   orbitValue = parent[key][\knobToOrbitValue].value(a.value);
 
 				   if (activeOrbit.isNil.not, {
 					  activeOrbit.set(key, orbitValue);

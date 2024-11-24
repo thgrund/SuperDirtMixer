@@ -172,4 +172,3 @@ When there are issues during the first startup, then it's most likely that there
 - Scott Wilson for the EQui project that I extended for this project
 - Alik Rustamoff for the Dynamic Range Compression tutorial
 - Calum Gunn for his Stage Master quark
-
