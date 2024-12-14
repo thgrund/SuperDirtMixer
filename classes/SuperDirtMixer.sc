@@ -122,41 +122,51 @@ SuperDirtMixer {
 	/* GUI */
 	gui {
 		/* DECLARE GUI VARIABLES */
-		var window, v;// local machine
+		var v;// local machine
+		var window = Window("SuperDirtMixer", Rect(100, 100, 2000, 1000), scroll: true);
 		var eventHandler = EventHandler.new;
+		var mixerContainer = ScrollView(window, Rect(10, 10, 380, 500)).background_(Color.gray(0.7));
+		var fxContainer = ScrollView(window, Rect(10, 310, 450, 500)).background_(Color.gray(0.7));
+		var settingsContainer = CompositeView(window, Rect(0, 0, 135, 500)).background_(Color.gray(0.85));
+		var midiContainer = CompositeView(window, Rect(0, 0, 135, 500)).background_(Color.gray(0.85));
+		var masterContainer = CompositeView(window, Rect(0, 0, 135, 500)).background_(Color.gray(0.85));
 		var masterUI = MasterUI.new(eventHandler);
 		var mixerUI = MixerUI.new(eventHandler, dirt.orbits);
 		var utilityUI =  UtilityUI.new(eventHandler, dirt.orbits, presetPath, defaultParentEvent);
-		var equalizerUI = EqualizerUI.new(eventHandler, dirt.orbits);
+		var equalizerUI = EqualizerUI.new(eventHandler, dirt.orbits, fxContainer);
 		var midiControlUI = MidiControlUI.new(switchControlButtonEvent, midiInternalOut);
 		var compressorUI = CompressorUI.new(eventHandler, dirt.orbits);
+
 
 		mixerUI.reverbVariableName = reverbVariableName;
 		mixerUI.reverbNativeSize = reverbNativeSize;
 
 		/* INIT GUI COMPONENTS */
 
-		// Create a window
-		window = Window.new("Mixer", Rect(0,0,300,1000), scroll: true);
-		window.background_(Color.grey(0.8));
-		window.layout_(
-			VLayout(
-				mixerUI.createUI,
-				30,
-				HLayout (
-					equalizerUI.createdUI,
-					20,
-					compressorUI.createUI,
-					20,
-					midiControlUI.createUI,
-					20,
-					masterUI.createUI(this.prMasterBus),
-					20,
-					utilityUI.createUI
-				)
-			)
-		);
+		mixerUI.createUI(mixerContainer);
+		utilityUI.createUI(settingsContainer);
+		masterUI.createUI(masterContainer,this.prMasterBus);
+		midiControlUI.createUI(midiContainer);
+		compressorUI.createUI(fxContainer);
 
+		window.drawFunc = {
+			mixerContainer.resizeTo(window.bounds.width - 20, window.bounds.height - fxContainer.bounds.height - 20);
+
+			fxContainer.resizeTo(
+				window.bounds.width - 20 - settingsContainer.bounds.width
+				- midiContainer.bounds.width - masterContainer.bounds.width, fxContainer.bounds.height
+			);
+			fxContainer.moveTo(10, window.bounds.height - fxContainer.bounds.height);
+
+			settingsContainer.moveTo(window.bounds.width - settingsContainer.bounds.width - 10, window.bounds.height - fxContainer.bounds.height);
+			midiContainer.moveTo(
+				window.bounds.width - settingsContainer.bounds.width - midiContainer.bounds.width
+				- masterContainer.bounds.width - 10, window.bounds.height - fxContainer.bounds.height
+			);
+			masterContainer.moveTo(
+				window.bounds.width - settingsContainer.bounds.width - masterContainer.bounds.width - 10,
+				window.bounds.height - fxContainer.bounds.height);
+        };
 
 		//eventHandler.printEventNames;
 		eventHandler.emitEvent(\setActiveOrbit, dirt.orbits[0]);

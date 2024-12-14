@@ -91,7 +91,8 @@ UtilityUI {
 
 	/* DEFINE PRESET UI */
     createUI {
-	    ^VLayout(
+		| container |
+	    container.layout = VLayout(
 			StaticText.new.string_("Preset").fixedHeight_(15).align_(\center),
 				/*Button.new.states_([["Mute All", Color.black, Color.white], ["Unmute All", Color.white, Color.blue]])
 			    .action_({

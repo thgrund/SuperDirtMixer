@@ -20,6 +20,7 @@ MidiControlUI {
     }
 
 	createUI {
+		| container |
 		var reshapedMidiControlButtons;
 
 		16.do({|item|
@@ -37,7 +38,7 @@ MidiControlUI {
 		reshapedMidiControlButtons = midiControlButtons.reshape(8,2);
 
 		if (midiOut.isNil.not,{
-			^VLayout(
+			container.layout = VLayout(
 				StaticText.new.string_("MIDI Part Switch").fixedHeight_(15).align_(\center),
 				HLayout(*reshapedMidiControlButtons[0]),
 				HLayout(*reshapedMidiControlButtons[1]),
@@ -47,7 +48,7 @@ MidiControlUI {
 				HLayout(*reshapedMidiControlButtons[5]),
 				HLayout(*reshapedMidiControlButtons[6]),
 				HLayout(*reshapedMidiControlButtons[7]),
-				100
+				CompositeView().minHeight_(120)
 			);
 		}, {
 			^VLayout()

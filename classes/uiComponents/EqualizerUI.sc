@@ -2,19 +2,19 @@ EqualizerUI : UIFactories{
 
 	var handler;
 	var orbits;
+	var container;
 	var eqView, freqScope;
 	var activeOrbit;
 	var defaultParentEvent;
 	var bypassButton;
 	var equalizerElements;
 	var globalEffects;
-	var <createdUI;
 
-    *new { |initHandler, initOrbits|
-        ^super.new.init(initHandler, initOrbits);
+    *new { |initHandler, initOrbits, initContainer|
+        ^super.new.init(initHandler, initOrbits, initContainer);
     }
 
-	init { |initHandler, initOrbits|
+	init { |initHandler, initOrbits, initContainer|
 		globalEffects = GlobalEffects.new;
 
 		handler = initHandler;
@@ -59,7 +59,7 @@ EqualizerUI : UIFactories{
 		if (orbits.isNil.not, {
 			this.prInitGlobalEffect;
 
-			this.createUI();
+			this.createUI(initContainer);
 
 			orbits.do({|orbit|
 				this.setEQuiValues(orbit);
@@ -271,26 +271,14 @@ EqualizerUI : UIFactories{
 	}
 
 	createUI {
-		var height = 450;
-		var width = 760;
+		| container |
 
 		/* DEFINE EQ GUI */
-		var equalizerComposite = CompositeView.new;
 
-		equalizerComposite.minHeight_(height);
-		equalizerComposite.minWidth_(width);
+		var equalizerComposite = CompositeView(container, Rect(5, 5, 700,  container.bounds.height - 15));
+	    var userView = UserView(equalizerComposite).minHeight_(equalizerComposite.bounds.height-80);
 
-		freqScope = FreqScopeView(equalizerComposite, equalizerComposite.bounds);
-		freqScope.freqMode = 1;
-		freqScope.dbRange = 86;
-		freqScope.active_(true); // turn it on the first time;
-		freqScope.style_(1);
-		freqScope.waveColors = [Color.new255(235, 235, 235)];
-		freqScope.background = Color.new255(200, 200, 200);
-		freqScope.fill = true;
-        freqScope.inBus = orbits[0].dryBus;
-
-		eqView = EQui.new(equalizerComposite, equalizerComposite.bounds, this.searchForEffectSynth(orbits[0]).synth);
+		equalizerComposite.background_(Color.gray(0.85));
 
 		this.setBypassButtonState(bypassButton, false, activeOrbit, \activeEq);
 
@@ -303,12 +291,12 @@ EqualizerUI : UIFactories{
 		this.eqFilterButtonFactory(\loPassBypass, "../../assets/images/lowPass.svg".resolveRelative);
 
 
-		createdUI = VLayout(
+		equalizerComposite.layout = VLayout(
 		    HLayout(
 			    bypassButton,
 			    StaticText.new.string_("Equalizer").fixedHeight_(15),
 		   )
-		   , equalizerComposite
+		   , userView
 		   , HLayout(
 				[equalizerElements[\hiPassBypass][\element]],
 				[equalizerElements[\loShelfBypass][\element]],
@@ -319,6 +307,19 @@ EqualizerUI : UIFactories{
 				[equalizerElements[\loPassBypass][\element]],
 			);
 	    );
+
+		freqScope = FreqScopeView(userView, Rect(0,0, userView.bounds.width, userView.bounds.height));
+		freqScope.freqMode = 1;
+		freqScope.dbRange = 86;
+		freqScope.active_(true); // turn it on the first time;
+		freqScope.style_(1);
+		freqScope.waveColors = [Color.new255(235, 235, 235)];
+		freqScope.background = Color.new255(255, 255, 255);
+		freqScope.fill = true;
+        freqScope.inBus = orbits[0].dryBus;
+
+		eqView = EQui.new(userView, Rect(0,0, userView.bounds.width, userView.bounds.height),
+			 this.searchForEffectSynth(orbits[0]).synth);
 	}
 
 	updateEQ {

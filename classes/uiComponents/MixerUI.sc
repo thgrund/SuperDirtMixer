@@ -93,6 +93,7 @@ MixerUI : UIFactories {
 	}
 
     createUI {
+		| container |
 		var orbitMixerViews = Array.new((orbits.size * 2) - 1);
 
 		defaultParentEvent = [
@@ -114,17 +115,21 @@ MixerUI : UIFactories {
 			orbitMixerViews.insert(baseIndex,
 				this.createMixerUIComponent(
 					orbits[item]
+					, container
 					, reverbVariableName
 			));
 			if ( (item == (orbits.size - 1)).not, {orbitMixerViews.insert(baseIndex + 1, 15)});
 		});
 
-	   ^HLayout(
-			*orbitMixerViews
-	   );
+        container.onResize = {
+    	    container.children.do({
+		        |compositeView|
+			    compositeView.resizeTo(125, (container.bounds.height - 15).min(460));
+	        });
+	    };
     }
 
-    createMixerUIComponent { |orbit, reverbVariableName|
+    createMixerUIComponent { |orbit, container, reverbVariableName|
 		    var text = orbit.get(\label);
 			var orbitElements = guiElements[orbit.orbitIndex];
 
@@ -141,7 +146,7 @@ MixerUI : UIFactories {
 		            orbit.set(\pan,a.value);
 	            });
 
-		    var gainSlider = Slider.new.maxWidth_(30).value_((orbit.get(\masterGain) + 1).curvelin(1,3,0,1, curve: 3)).action_({|a|
+		    var gainSlider = Slider.new.fixedWidth_(30).value_((orbit.get(\masterGain) + 1).curvelin(1,3,0,1, curve: 3)).action_({|a|
 			        orbit.set(\masterGain,a.value.lincurve(0, 1.0, 1,3, curve: 3) - 1);
 		            gainNumBox.value_(a.value.lincurve(0, 1.0, 1,3, curve: 3)-1);
 		        });
@@ -179,13 +184,13 @@ MixerUI : UIFactories {
 
 		    guiElements.add(newOrbitElements);
 
-			this.orbitLevelIndicators.add(Array.fill(~dirt.numChannels, {LevelIndicator.new.maxWidth_(12).drawsPeak_(true).warning_(0.9).critical_(1.0)}));
+			this.orbitLevelIndicators.add(Array.fill(~dirt.numChannels, {LevelIndicator.new.fixedWidth_(12).drawsPeak_(true).warning_(0.9).critical_(1.0)}));
 
 		    if (orbit == activeOrbit,
 				{eqButton.states_([["FX", Color.white, Color.new255(238, 180, 34)]])},
 				{eqButton.states_([["FX", Color.black, Color.gray(0.9)]])});
 
-			^VLayout(
+			CompositeView.new(container, Rect((orbit.orbitIndex * 130) + 5, 5, 100, 440)).layout_(VLayout(
 				orbitLabelView,
 				panKnob,
 				panNumBox,
@@ -195,24 +200,25 @@ MixerUI : UIFactories {
 					gainSlider
 				).spacing_(0),
 				gainNumBox,
-				StaticText.new.string_("FX - Reverb").minWidth_(100).align_(\center),
+				StaticText.new.string_("FX - Reverb").align_(\center),
 				reverbKnob,
 				eqButton,
 				HLayout(
-					Button.new.maxWidth_(25)
+					Button.new
 					.states_([["M", Color.black, Color.gray(0.9)], ["M", Color.white, Color.blue]])
 					.action_({
 						|view|
 						if(view.value == 0) { tidalNetAddr.sendMsg("/unmute",orbit.orbitIndex + 1) };
 						if(view.value == 1) { tidalNetAddr.sendMsg("/mute",orbit.orbitIndex + 1) };
 					}),
-					Button.new.maxWidth_(25).states_([["S", Color.black, Color.gray(0.9)], ["S", Color.white, Color.red]]).action_({
+					Button.new.states_([["S", Color.black, Color.gray(0.9)], ["S", Color.white, Color.red]]).action_({
 						|view|
 						if(view.value == 0) { tidalNetAddr.sendMsg("/unsolo",orbit.orbitIndex + 1) };
 						if(view.value == 1) { tidalNetAddr.sendMsg("/solo",orbit.orbitIndex + 1) };
 					}),
-				),
-			)
+				    ),
+			    )
+		    ).background_(Color.gray(0.85));
 		}
 
 	/*

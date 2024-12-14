@@ -91,7 +91,7 @@ MasterUI : UIFactories {
 	}
 
 	createUI {
-		|prMasterBus|
+		|container, prMasterBus|
 
 		    if (prMasterBus.isNil, {
 			    stageMaster[\live][\element].enabled_(false);
@@ -105,12 +105,12 @@ MasterUI : UIFactories {
 			    currentEnvironment[\SuperDirtMixer].put(\wasStageMasterSynthCreated, true);
 		    });
 
-			^VLayout(
+		    container.layout = VLayout(
 				/* DEFINE MASTER UI : EXTRACT -> Stage master */
-				StaticText.new.string_("Master").minWidth_(100).maxHeight_(30).align_(\center),
+				StaticText.new.string_("Master").align_(\center),
 				HLayout(leftMasterIndicator,rightMasterIndicator).spacing_(0),
 				10,
-				StaticText.new.string_("Stage Master").minWidth_(100).maxHeight_(30).align_(\center),
+				StaticText.new.string_("Stage Master").align_(\center),
 				10,
 			    stageMaster[\live][\element],
 			    10,

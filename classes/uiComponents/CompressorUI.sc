@@ -35,8 +35,8 @@ CompressorUI : UIFactories {
 		// Parameters for the compressor
 		ampThreshold = -60;
 
-		height = 380;
-		width = 380;
+		height = 340;
+		width = 340;
 
 		if (orbits.isNil.not, {
 
@@ -175,7 +175,7 @@ CompressorUI : UIFactories {
 		Pen.stroke;
 
 		// Draw axis labels
-		Pen.color = Color.black;
+		// Pen.color = Color.black;
 		Pen.stringAtPoint("Input Level (dB)", Point(height * 0.4, width * 0.9), Font( Font.defaultSansFace, 14 ), Color.gray(0.2).alpha_(0.5));
 		Pen.rotate(0);
 		Pen.stringAtPoint("Output Level (dB)", Point(0, width * 0.5), Font( Font.defaultSansFace, 14 ), Color.gray(0.2).alpha_(0.5)); // Adjusted position for better visibility
@@ -243,8 +243,11 @@ CompressorUI : UIFactories {
 	}
 
 	createUI {
+		| container |
 
-		var compressorComposite = CompositeView.new;
+		var compressorComposite = CompositeView(container, Rect(710, 5, 540,  container.bounds.height - 15)).background_(Color.grey(0.85));
+	    var compressorFeedback = CompositeView.new.fixedHeight_(height).fixedWidth_(width).background_(Color.grey(0.95));
+
 		var gainReductionSlider;
 		var thresholdLabel;
 		var defaultParentEventDict = defaultParentEvent.asDict;
@@ -257,10 +260,8 @@ CompressorUI : UIFactories {
 
 		this.setBypassButtonState(bypassButton, false, activeOrbit, \activeCompressor);
 
-		compressorComposite.minHeight_(height);
-		compressorComposite.minWidth_(width);
-
-		comporessorView = UserView(compressorComposite, compressorComposite.bounds).background_(Color.new255(235, 235, 235));
+		comporessorView = UserView(compressorFeedback, compressorFeedback.bounds);
+		comporessorView.background_(Color.grey(0.95));
 
 		// Draw the comporessorView
 		comporessorView.drawFunc = {
@@ -393,40 +394,37 @@ CompressorUI : UIFactories {
 
 		this.updateCompressorUI();
 
-		^VLayout(
-			HLayout(bypassButton, StaticText.new.string_("Compressor").fixedHeight_(15))
-			,HLayout(
-				VLayout(
-					compressorElements[\cpThresh][\title]
-					, compressorElements[\cpThresh][\element]
-					, compressorElements[\cpThresh][\value],
-					75
-				).setAlignment(1, \center)
-				, VLayout(
-					compressorComposite
-					, HLayout(
-						VLayout (compressorElements[\cpTrim][\title], compressorElements[\cpTrim][\element], compressorElements[\cpTrim][\value])
-						, VLayout (compressorElements[\cpRatio][\title], compressorElements[\cpRatio][\element], compressorElements[\cpRatio][\value])
-						, VLayout (compressorElements[\cpAttack][\title], compressorElements[\cpAttack][\element], compressorElements[\cpAttack][\value])
-						, VLayout (compressorElements[\cpRelease][\title], compressorElements[\cpRelease][\element], compressorElements[\cpRelease][\value])
-						, VLayout (compressorElements[\cpGain][\title], compressorElements[\cpGain][\element], compressorElements[\cpGain][\value])
-					),
+		compressorComposite.layout_(
+			VLayout(
+				HLayout(bypassButton, StaticText.new.string_("Compressor").fixedHeight_(15))
+				,HLayout(
+					VLayout(
+						compressorElements[\cpThresh][\title]
+						, compressorElements[\cpThresh][\element]
+						, compressorElements[\cpThresh][\value],
+					).setAlignment(1, \center)
+					, compressorFeedback
+					, VLayout(
+						VLayout (compressorElements[\cpKnee][\title], compressorElements[\cpKnee][\element], compressorElements[\cpKnee][\value])
+						, VLayout (compressorElements[\cpBias][\title], compressorElements[\cpBias][\element], compressorElements[\cpBias][\value])
+						, VLayout (compressorElements[\cpLookahead][\title], compressorElements[\cpLookahead][\element], compressorElements[\cpLookahead][\value])
+						, VLayout (compressorElements[\cpHpf][\title], compressorElements[\cpHpf][\element], compressorElements[\cpHpf][\value])
+					), VLayout(
+						compressorElements[\gainReduction][\title]
+						, compressorElements[\gainReduction][\element]
+					).setAlignment(1, \center)
 				)
-				, VLayout(
-					VLayout (compressorElements[\cpKnee][\title], compressorElements[\cpKnee][\element], compressorElements[\cpKnee][\value])
-					, VLayout (compressorElements[\cpBias][\title], compressorElements[\cpBias][\element], compressorElements[\cpBias][\value])
-					, VLayout (compressorElements[\cpLookahead][\title], compressorElements[\cpLookahead][\element], compressorElements[\cpLookahead][\value])
-					, VLayout (compressorElements[\cpHpf][\title], compressorElements[\cpHpf][\element], compressorElements[\cpHpf][\value])
-					, 75
-				), VLayout(
-					compressorElements[\gainReduction][\title]
-					, compressorElements[\gainReduction][\element]
-					, 75
-				).setAlignment(1, \center)
+				, HLayout(
+					CompositeView.new.fixedWidth_(50),
+					VLayout (compressorElements[\cpTrim][\title], compressorElements[\cpTrim][\element], compressorElements[\cpTrim][\value])
+					, VLayout (compressorElements[\cpRatio][\title], compressorElements[\cpRatio][\element], compressorElements[\cpRatio][\value])
+					, VLayout (compressorElements[\cpAttack][\title], compressorElements[\cpAttack][\element], compressorElements[\cpAttack][\value])
+					, VLayout (compressorElements[\cpRelease][\title], compressorElements[\cpRelease][\element], compressorElements[\cpRelease][\value])
+					, VLayout (compressorElements[\cpGain][\title], compressorElements[\cpGain][\element], compressorElements[\cpGain][\value])
+					, CompositeView.new.fixedWidth_(110)
+				),
 			)
-			, 20
-
-		);
+		)
 	}
 
 	addSynthListener {
