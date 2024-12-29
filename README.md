@@ -44,9 +44,9 @@ For the EQ of an orbit, this plugin is using EQui (https://github.com/thgrund/EQ
 
 ## Clean up before Upgrade
 
-If you already installed the SuperDirtMixer, then you need to remove the EQui Quark manually once. This is needed to switch to my fork, instead of using the original repository. This is how you achieve that: 
+If you already installed the SuperDirtMixer, then you need to remove the EQui Quark manually once. This is needed to switch to my fork, instead of using the original repository. This is how you achieve that:
 
-1. Execute `Quarks.gui` in SuperCollider or open the Quarks ui under `Language/Quarks` 
+1. Execute `Quarks.gui` in SuperCollider or open the Quarks ui under `Language/Quarks`
 2. Search for `EQui` and select it
 3. Open the directory under `Local path` (should be inside of `downloaded-quarks`)
 4. Delete the `EQui` folder
@@ -71,7 +71,6 @@ Pass this in your startup file after you installed it:
         ~mixer = SuperDirtMixer(~dirt);
 
         // You can adjust parameters before you use the ui
-        ~mixer.setOrbitLabels(["d1 - Lead", "d2 - Bass", "d3 - Key", "d4 - Pad"]);
         ~mixer.setMasterBus(0);
 
         // When you added your settings in you startup file, then you should be able to use the ui at any time in any differtent SuperCollider file.
@@ -80,11 +79,11 @@ Pass this in your startup file after you installed it:
 )
 ```
 
-For more in depth configuration options you can have a look into the helpfile. This is accessable in SuperCollider when your cursor is on `SuperDirtMixer` and you press i.e. `Command + D` on MacOS. 
+For more in depth configuration options you can have a look into the helpfile. This is accessable in SuperCollider when your cursor is on `SuperDirtMixer` and you press i.e. `Command + D` on MacOS.
 
 ## Preset management
 
-You can load and overwrite existing preset files within the SuperDirtMixer ui. However to add new preset files, you need to create an empty json file within your preset folder. The default one is the preset folder within the SuperDirtMixer Quark. 
+You can load and overwrite existing preset files within the SuperDirtMixer ui. However to add new preset files, you need to create an empty json file within your preset folder. The default one is the preset folder within the SuperDirtMixer Quark.
 
 The SuperDirtMixer is only shipped with one single `Default.json` file.
 
@@ -121,7 +120,7 @@ let x1 = streamReplace superDirtMixer 1 . (|< orbit 0)
     x12 = streamReplace superDirtMixer 12 . (|< orbit 11)
     x13 = streamReplace superDirtMixer 13 . (|< orbit 12)
     x14 = streamReplace superDirtMixer 14 . (|< orbit 13)
-   
+
 -- This is needed to silence all patterns from both streams
 hush = do
    streamHush tidal
@@ -129,7 +128,7 @@ hush = do
 
 ```
 
-Then you should be able to run these TidalCycles patterns independently from. your other patterns and see the changes in the ui. I.e. 
+Then you should be able to run these TidalCycles patterns independently from. your other patterns and see the changes in the ui. I.e.
 ```haskell
 x1 $
  stack [

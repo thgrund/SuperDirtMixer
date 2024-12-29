@@ -27,7 +27,6 @@ code::
 	    ~mixer = SuperDirtMixer(~dirt);
 
 	    // You can adjust parameters before you use the ui
-		~mixer.setOrbitLabels(["d1 - Lead", "d2 - Bass", "d3 - Key", "d4 - Pad", "d5 - Arp", "d6 - Drums", "d7 - Rhytm Git", "d8 - Lead Git", "d9 - Strings", "d10 - FX", "d11 - Kick", "d12 - Cymbals", "d13 - Snare", "d14 - Toms"]);
         ~mixer.setMasterBus(0);
 
 		// When you added your settings in you startup file, then you should be able to use the ui at any time in any differtent SuperCollider file.
@@ -64,17 +63,6 @@ This will render the level indicator for a master audio bus and enables the stag
 
 ARGUMENT:: masterBus
 The recommendation would be to use the output bus that will be used for the stereo hardware output. In most cases this should be simply 0 or can be accessed by Bus.new.
-
-METHOD::setOrbitLabels
-This is basically an array with the length of ~dirt.orbits wich allows you to change the label of each orbit controls section.
-
-code::
-	// Change the label of each orbit
-	~mixer.setOrbitLabels(["d1 - Lead", "d2 - Bass", "d3 - Key", "d4 - Pad", "d5 - Arp", "d6 - Drums", "d7 - Rhytm Git", "d8 - Lead Git", "d9 - Strings", "d10 - FX", "d11 - Kick", "d12 - Cymbals", "d13 - Snare", "d14 - Toms"]);
-
-	// Change the label of a specific orbit
-	~dirt.orbits[4].set(\label, "d5 - Arp");
-::
 
 SUBSECTION:: Reverb FX
 The default configuration uses the native reverb algorithm with a fix room sz value of 0.95. But there is an alternative variant to use i.e. one instance of a VST reverb plugin across all orbits (see the example section). For tonal depth it is recommended to keep every audio signal in the same simulated room and just add the amount of a wet signal.

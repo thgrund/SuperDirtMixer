@@ -50,15 +50,6 @@ SuperDirtMixer {
 		}
 	}
 
-	setOrbitLabels {
-		|labels|
-
-		labels.do({
-			|label, index|
-			dirt.orbits[index].set(\label, label);
-		});
-	}
-
 	prLoadSynthDefs { |path|
 		var filePaths;
 		path = path ?? { "../synths".resolveRelative };
