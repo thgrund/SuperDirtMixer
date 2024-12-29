@@ -168,7 +168,6 @@ SuperDirtMixer {
 				window.bounds.height - fxContainer.bounds.height);
         };
 
-		//eventHandler.printEventNames;
 		eventHandler.emitEvent(\setActiveOrbit, dirt.orbits[0]);
 
 		freeAction = {

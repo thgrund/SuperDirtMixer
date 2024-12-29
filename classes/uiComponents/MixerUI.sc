@@ -22,15 +22,10 @@ MixerUI : UIFactories {
 		guiElements = Array.new(orbits.size);
 		reverbNativeSize = 0;
 
-		defaultParentEvent = [
-			\pan, 0.5, \masterGain, 1.0, reverbVariableName.asSymbol, 0.0
-	    ];
-
 		if (orbits.isNil.not, {
 			var globalEffects = GlobalEffects.new;
 
 			activeOrbit = orbits[0];
-			//this.setOrbits(defaultParentEvent);
 
 			orbits.do { |orbit|
 				globalEffects.addGlobalEffect(orbit, GlobalDirtEffect(\dirt_master_mix, [\masterGain, \gainControlLag]), true);
@@ -51,22 +46,38 @@ MixerUI : UIFactories {
 	handleEvent { |eventName, eventData|
 		if (eventName == \updateUI, {
 			orbits.do({|item|
+				guiElements[item.orbitIndex][\orbitLabel][\element].string_(item.get(\label));
+				guiElements[item.orbitIndex][\contextMenuLabel][\element].string_(item.get(\label));
 				guiElements[item.orbitIndex][\pan][\element].value_(item.get(\pan));
 				guiElements[item.orbitIndex][\pan][\value].value_(item.get(\pan));
 				guiElements[item.orbitIndex][\masterGain][\element].value_((item.get(\masterGain) + 1).curvelin(1,3, 0,1, curve: 3));
 				guiElements[item.orbitIndex][\masterGain][\value].value_(item.get(\masterGain));
 				guiElements[item.orbitIndex][\reverb][\element].value_(item.get(reverbVariableName));
+				guiElements[item.orbitIndex][\orbitWrapper][\element].background = (Color.fromHexString(item.get(\color)));
+				guiElements[item.orbitIndex][\colorPicker][\element].setColorFromHexString(item.get(\color));
+
 			});
 		};
 		);
 
 		if (eventName == \resetAll, {
 			orbits.do({|item|
+
+				guiElements[item.orbitIndex][\orbitLabel][\element].string_("d" ++ (item.orbitIndex + 1));
+				guiElements[item.orbitIndex][\contextMenuLabel][\element].string_("d" ++ (item.orbitIndex + 1));
 				guiElements[item.orbitIndex][\pan][\element].value_(0.5);
 				guiElements[item.orbitIndex][\pan][\value].value_(0.5);
 				guiElements[item.orbitIndex][\masterGain][\element].value_(2.curvelin(1,3,0,1, curve: 3));
 				guiElements[item.orbitIndex][\masterGain][\value].value_(1.0);
 				guiElements[item.orbitIndex][\reverb][\element].value_(0.0);
+				guiElements[item.orbitIndex][\orbitWrapper][\element].background = Color.fromHexString("#D9D9D9");
+				guiElements[item.orbitIndex][\colorPicker][\element].setColorFromHexString("#D9D9D9");
+
+				item.set(\pan, 0.5);
+				item.set(\masterGain, 1.0);
+				item.set(\color, "#D9D9D9");
+				item.set(\label, "d" ++ (item.orbitIndex + 1));
+				item.set(reverbVariableName.asSymbol, 0.0);
             });
 		});
 
@@ -97,7 +108,7 @@ MixerUI : UIFactories {
 		var orbitMixerViews = Array.new((orbits.size * 2) - 1);
 
 		defaultParentEvent = [
-			\pan, 0.5, \masterGain, 1.0, reverbVariableName.asSymbol, 0.0
+			\pan, 0.5, \masterGain, 1.0, reverbVariableName.asSymbol, 0.0, \color, "#D9D9D9", \label, ""
 	    ];
 
 		this.setOrbits(defaultParentEvent);
@@ -130,6 +141,12 @@ MixerUI : UIFactories {
     }
 
     createMixerUIComponent { |orbit, container, reverbVariableName|
+		    var composite = CompositeView.new(container, Rect((orbit.orbitIndex * 130) + 5, 5, 100, 440));
+		    var colorPicker = ColorPickerUI.new({|color|
+			    composite.background = color;
+			    orbit.defaultParentEvent.put(\color, color.hexString);
+		    });
+		    var contextMenuLabel;
 		    var text = orbit.get(\label);
 			var orbitElements = guiElements[orbit.orbitIndex];
 
@@ -174,12 +191,17 @@ MixerUI : UIFactories {
 
 			var orbitLabelView = StaticText.new.string_(text).minWidth_(100).align_(\center);
 
+		    var contextMenuLabelView = TextView.new.string_(orbit.get(\label)).fixedHeight_(30);
+
 			var newOrbitElements = Dictionary.newFrom([
 				\orbitLabel,  Dictionary.newFrom([\element, orbitLabelView])
+			    , \contextMenuLabel, Dictionary.newFrom([\element, contextMenuLabelView])
 				, \pan, Dictionary.newFrom([\element, panKnob, \value, panNumBox])
 				, \masterGain, Dictionary.newFrom([\element, gainSlider, \value, gainNumBox ])
 				, \reverb, Dictionary.newFrom([\element, reverbKnob])
 				, \eq, Dictionary.newFrom([\element, eqButton])
+			    , \orbitWrapper, Dictionary.newFrom([\element, composite])
+			    , \colorPicker, Dictionary.newFrom([\element, colorPicker])
 			]);
 
 		    guiElements.add(newOrbitElements);
@@ -190,7 +212,7 @@ MixerUI : UIFactories {
 				{eqButton.states_([["FX", Color.white, Color.new255(238, 180, 34)]])},
 				{eqButton.states_([["FX", Color.black, Color.gray(0.9)]])});
 
-			CompositeView.new(container, Rect((orbit.orbitIndex * 130) + 5, 5, 100, 440)).layout_(VLayout(
+			composite.layout_(VLayout(
 				orbitLabelView,
 				panKnob,
 				panNumBox,
@@ -219,6 +241,17 @@ MixerUI : UIFactories {
 				    ),
 			    )
 		    ).background_(Color.gray(0.85));
+
+		    contextMenuLabelView.keyUpAction =  {|tv|
+			    orbitLabelView.string_(tv.string);
+			    orbit.set(\label, tv.string);
+		    };
+
+		    composite.setContextMenuActions(
+		        CustomViewAction(contextMenuLabelView),
+			    CustomViewAction(colorPicker.createUI().minHeight_(300).minWidth_(300))
+		    );
+
 		}
 
 	/*
@@ -246,7 +279,6 @@ MixerUI : UIFactories {
 
 	addRemoteControlListener { OSCFunc ({|msg| {
 		var event = ();
-		var superDirtOSC = NetAddr("127.0.0.1", 57120);
 		var orbitIndex;
 
 		event.putPairs(msg[1..]);
@@ -270,6 +302,19 @@ MixerUI : UIFactories {
 				guiElements[orbitIndex][\masterGain][\element].value_((orbits.at(orbitIndex).get(\masterGain) + 1).curvelin(1,3, 0,1, curve: 3));
 				guiElements[orbitIndex][\masterGain][\value].value_(orbits.at(orbitIndex).get(\masterGain));
 			});
+
+			if (event.at(\label).isNil.not, {
+			    orbits.at(orbitIndex).set(\label, event.at(\label));
+				guiElements[orbitIndex][\orbitLabel][\element].string_(orbits.at(orbitIndex).get(\label));
+				guiElements[orbitIndex][\contextMenuLabel][\element].string_(orbits.at(orbitIndex).get(\label));
+			});
+
+			if (event.at(\color).isNil.not, {
+			    orbits.at(orbitIndex).set(\color, event.at(\color));
+				guiElements[orbitIndex][\colorPicker][\element].setColorFromHexString(event.at(\color).asString);
+				guiElements[orbitIndex][\orbitWrapper][\element].background = event.at(\color).asString;
+			});
+
 
 		});
 

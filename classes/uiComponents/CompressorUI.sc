@@ -467,7 +467,6 @@ CompressorUI : UIFactories {
 
 	addRemoteControlListener { OSCFunc ({|msg| {
 		var event = ();
-		var superDirtOSC = NetAddr("127.0.0.1", 57120);
 		var orbitIndex;
 		var compressorParams = defaultParentEvent.asDict.keys;
 
