@@ -53,7 +53,7 @@ MixerUI : UIFactories {
 				guiElements[item.orbitIndex][\masterGain][\element].value_((item.get(\masterGain) + 1).curvelin(1,3, 0,1, curve: 3));
 				guiElements[item.orbitIndex][\masterGain][\value].value_(item.get(\masterGain));
 				guiElements[item.orbitIndex][\reverb][\element].value_(item.get(reverbVariableName));
-				guiElements[item.orbitIndex][\orbitWrapper][\element].background = (Color.fromHexString(item.get(\color)));
+				guiElements[item.orbitIndex][\orbitLabel][\element].background = (Color.fromHexString(item.get(\color)));
 				guiElements[item.orbitIndex][\colorPicker][\element].setColorFromHexString(item.get(\color));
 
 			});
@@ -70,7 +70,7 @@ MixerUI : UIFactories {
 				guiElements[item.orbitIndex][\masterGain][\element].value_(2.curvelin(1,3,0,1, curve: 3));
 				guiElements[item.orbitIndex][\masterGain][\value].value_(1.0);
 				guiElements[item.orbitIndex][\reverb][\element].value_(0.0);
-				guiElements[item.orbitIndex][\orbitWrapper][\element].background = Color.fromHexString("#D9D9D9");
+				guiElements[item.orbitIndex][\orbitLabel][\element].background = Color.fromHexString("#D9D9D9");
 				guiElements[item.orbitIndex][\colorPicker][\element].setColorFromHexString("#D9D9D9");
 
 				item.set(\pan, 0.5);
@@ -142,12 +142,16 @@ MixerUI : UIFactories {
 
     createMixerUIComponent { |orbit, container, reverbVariableName|
 		    var composite = CompositeView.new(container, Rect((orbit.orbitIndex * 130) + 5, 5, 100, 440));
-		    var colorPicker = ColorPickerUI.new({|color|
-			    composite.background = color;
-			    orbit.defaultParentEvent.put(\color, color.hexString);
-		    });
+
 		    var contextMenuLabel;
 		    var text = orbit.get(\label);
+			var orbitLabelView = StaticText.new.string_(text).minWidth_(100).align_(\center);
+
+		    var colorPicker = ColorPickerUI.new({|color|
+			    orbitLabelView.background = color;
+			    orbit.defaultParentEvent.put(\color, color.hexString);
+		    });
+
 			var orbitElements = guiElements[orbit.orbitIndex];
 
 			var panKnob = Knob().value_(orbit.get(\pan)).centered_(true).action_({|a|
@@ -188,8 +192,6 @@ MixerUI : UIFactories {
             var reverbKnob =  Knob().value_(orbit.get(reverbVariableName)).action_({|a|
 					orbit.set(reverbVariableName,a.value);
 				});
-
-			var orbitLabelView = StaticText.new.string_(text).minWidth_(100).align_(\center);
 
 		    var contextMenuLabelView = TextView.new.string_(orbit.get(\label)).fixedHeight_(30);
 
@@ -312,7 +314,7 @@ MixerUI : UIFactories {
 			if (event.at(\color).isNil.not, {
 			    orbits.at(orbitIndex).set(\color, event.at(\color));
 				guiElements[orbitIndex][\colorPicker][\element].setColorFromHexString(event.at(\color).asString);
-				guiElements[orbitIndex][\orbitWrapper][\element].background = event.at(\color).asString;
+				guiElements[orbitIndex][\orbitLabel][\element].background = event.at(\color).asString;
 			});
 
 
