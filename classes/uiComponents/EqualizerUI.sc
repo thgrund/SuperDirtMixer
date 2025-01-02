@@ -156,7 +156,7 @@ EqualizerUI : UIFactories{
 
 	prInitGlobalEffect {
 		orbits.do { |orbit|
-			globalEffects.addGlobalEffect(orbit, GlobalDirtEffect(\dirt_global_eq, [\activeEq]))
+			globalEffects.addGlobalEffect(orbit, GlobalDirtEffect(\dirt_global_eq, [\activeEq, \hiPassFreq, \hiPassBypass]))
 		};
 	}
 

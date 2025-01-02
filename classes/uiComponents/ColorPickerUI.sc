@@ -114,6 +114,11 @@ ColorPickerUI {
 			hsv[2] = color.asHSV[2];
 
 			v_slider_position = color.asHSV[0];
+
+			if (hex_text_field.string != str, {
+				hex_text_field.string = str;
+			});
+
 			helper.refresh;
 			sv_slider.refresh;
 			v_slider.refresh;
