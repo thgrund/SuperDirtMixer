@@ -70,6 +70,8 @@ UtilityUI {
 			 orbits[index].set(*defaultEvent.asPairs);
         });
 
+		handler.emitEvent(\presetLoaded, defaultEvents);
+
 	}
 
 	savePreset {

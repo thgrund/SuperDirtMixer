@@ -124,7 +124,7 @@ SuperDirtMixer {
 		var masterUI = MasterUI.new(eventHandler);
 		var mixerUI = MixerUI.new(eventHandler, dirt.orbits);
 		var utilityUI =  UtilityUI.new(eventHandler, dirt.orbits, presetPath, defaultParentEvent);
-		var equalizerUI = EqualizerUI.new(eventHandler, dirt.orbits, fxContainer);
+		var equalizerUI = EqualizerUI.new(eventHandler, dirt.orbits, dirt.controlBusses, fxContainer);
 		var midiControlUI = MidiControlUI.new(switchControlButtonEvent, midiInternalOut);
 		var compressorUI = CompressorUI.new(eventHandler, dirt.orbits);
 

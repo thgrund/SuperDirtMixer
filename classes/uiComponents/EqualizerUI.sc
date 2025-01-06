@@ -2,6 +2,7 @@ EqualizerUI : UIFactories{
 
 	var handler;
 	var orbits;
+	var controlBusses;
 	var container;
 	var eqView, freqScope;
 	var activeOrbit;
@@ -9,16 +10,19 @@ EqualizerUI : UIFactories{
 	var bypassButton;
 	var equalizerElements;
 	var globalEffects;
+	var loadedOrbitsPreset;
+	var controlBusHandlers;
 
-    *new { |initHandler, initOrbits, initContainer|
-        ^super.new.init(initHandler, initOrbits, initContainer);
+    *new { |initHandler, initOrbits, initControlBusses, initContainer|
+        ^super.new.init(initHandler, initOrbits, initControlBusses, initContainer);
     }
 
-	init { |initHandler, initOrbits, initContainer|
+	init { |initHandler, initOrbits, initControlBusses, initContainer|
 		globalEffects = GlobalEffects.new;
 
 		handler = initHandler;
 		orbits = initOrbits;
+		controlBusses = initControlBusses;
 
 		defaultParentEvent = [
 		    \hiPassFreq , 100, \hiPassGain , 0, \hiPassRq , 1.4, \hiPassBypass , 1, \loShelfFreq , 150, \loShelfGain, 0, \loShelfRs, 1, \loShelfBypass, 0, \loPeakFreq , 250, \loPeakGain , 0, \loPeakRq , 1, \loPeakBypass , 0, \midPeakFreq , 1000, \midPeakGain , 0, \midPeakRq , 1, \midPeakBypass , 0, \hiPeakFreq , 3500, \hiPeakGain , 0, \hiPeakRq , 1, \hiPeakBypass , 0, \hiShelfFreq , 6000, \hiShelfGain , 0, \hiShelfRs , 1, \hiShelfBypass , 0, \loPassFreq , 8000, \loPassGain , 0, \loPassRq , 1.4, \loPassBypass, 1, \activeEq, 1
@@ -32,11 +36,13 @@ EqualizerUI : UIFactories{
 			handler.subscribe(this, \releaseAll);
 			handler.subscribe(this, \addRemoteControl);
 			handler.subscribe(this, \destroy);
+			handler.subscribe(this, \presetLoaded);
 
 			handler.emitEvent(\extendDefaultParentEvent, defaultParentEvent);
 		});
 
 		equalizerElements = Dictionary.new;
+        controlBusHandlers = Dictionary.new;
 
 		bypassButton = Button.new.string_("Bypass").maxWidth_(75);
 
@@ -70,6 +76,8 @@ EqualizerUI : UIFactories{
 
 			this.setOrbits(defaultParentEvent);
 			this.setEQuiValues(activeOrbit);
+
+			loadedOrbitsPreset = Array.fill(orbits.size, {defaultParentEvent.asEvent})
 		});
 	}
 
@@ -152,11 +160,28 @@ EqualizerUI : UIFactories{
 			freqScope.kill;
 		});
 
+		if (eventName == \presetLoaded, {
+			eventData.do({
+				|value, index|
+				var eventTemplate = ();
+
+				defaultParentEvent.keysValuesDo({|defaultKey, defaultValue|
+					if (value[defaultKey].isNil, {
+						eventTemplate[defaultKey] = defaultValue;
+					}, {
+						eventTemplate[defaultKey] = value[defaultKey];
+					})
+				});
+
+				loadedOrbitsPreset.put(index, eventTemplate);
+			});
+		});
+
     }
 
 	prInitGlobalEffect {
 		orbits.do { |orbit|
-			globalEffects.addGlobalEffect(orbit, GlobalDirtEffect(\dirt_global_eq, [\activeEq, \hiPassFreq, \hiPassBypass]))
+			globalEffects.addGlobalEffect(orbit, GlobalDirtEffect(\dirt_global_eq, [\activeEq]))
 		};
 	}
 
@@ -185,7 +210,6 @@ EqualizerUI : UIFactories{
 
 	setEQuiValues {|orbit|
 		var effect = this.searchForEffectSynth(orbit);
-
 			eqView.value = EQuiParams.new(
 				hiPassFreq: orbit.get(\hiPassFreq),
 				hiPassRq: orbit.get(\hiPassRq),
@@ -290,7 +314,6 @@ EqualizerUI : UIFactories{
 		this.eqFilterButtonFactory(\hiShelfBypass, "../../assets/images/highShelf.svg".resolveRelative );
 		this.eqFilterButtonFactory(\loPassBypass, "../../assets/images/lowPass.svg".resolveRelative);
 
-
 		equalizerComposite.layout = VLayout(
 		    HLayout(
 			    bypassButton,
@@ -319,7 +342,23 @@ EqualizerUI : UIFactories{
         freqScope.inBus = orbits[0].dryBus;
 
 		eqView = EQui.new(userView, Rect(0,0, userView.bounds.width, userView.bounds.height),
-			 this.searchForEffectSynth(orbits[0]).synth);
+			this.searchForEffectSynth(orbits[0]).synth, uiCallback: {
+				|select, freq, gain, rs|
+				var bands = #[ \hiPass, \loShelf, \loPeak, \midPeak, \hiPeak, \hiShelf,\loPass];
+				var freqSymbol = (bands[select] ++ "Freq").asSymbol;
+				var gainSymbol = (bands[select] ++ "Gain").asSymbol;
+				var rsSymbol = (bands[select] ++ "Rs").asSymbol;
+
+				loadedOrbitsPreset[activeOrbit.orbitIndex].put(freqSymbol, freq);
+				activeOrbit.set(freqSymbol, freq);
+
+				loadedOrbitsPreset[activeOrbit.orbitIndex].put(gainSymbol, gain);
+				activeOrbit.set(gainSymbol, gain);
+
+				loadedOrbitsPreset[activeOrbit.orbitIndex].put(rsSymbol, rs);
+				activeOrbit.set(rsSymbol, rs);
+
+		});
 	}
 
 	updateEQ {
@@ -348,6 +387,68 @@ EqualizerUI : UIFactories{
 			this.setEmptyButtonState(equalizerElements[property][\element], false, activeOrbit, property);
 	}
 
+	stopControlBusTask {
+		|orbitIndex, param, reset|
+
+		if (controlBusHandlers[orbitIndex].notNil, {
+			if (controlBusHandlers[orbitIndex][param].notNil, {
+				controlBusHandlers[orbitIndex][param].linkDown.stop;
+				controlBusHandlers[orbitIndex].removeAt(param);
+			});
+
+			if (reset, {
+				orbits[orbitIndex].set(param, loadedOrbitsPreset[orbitIndex][param]);
+
+				{
+					this.updateEQ(orbits.at(orbitIndex));
+				}.defer;
+			});
+		})
+	}
+
+	createControlBusHandler {
+		|orbitIndex, param, delta, busId, shallUIBeUpdated |
+		var task, resetTask;
+
+		if (controlBusHandlers[orbitIndex].isNil, {
+			controlBusHandlers.put(orbitIndex, Dictionary.new);
+		});
+
+		task = Task {
+			loop {
+				0.05.wait;
+				controlBusses[busId].get({
+					|value|
+
+					if (orbits.at(orbitIndex).get(param) != value, {
+						orbits.at(orbitIndex).set(param, value);
+
+						if (activeOrbit.isNil.not && shallUIBeUpdated == 1.0, {
+							{
+								this.updateEQ(orbits.at(orbitIndex));
+							}.defer;
+						});
+					});
+				});
+		    };
+		};
+
+		resetTask = Task {
+			(delta + 0.1).wait;
+			this.stopControlBusTask(orbitIndex, param, true);
+		};
+
+		if (controlBusHandlers[orbitIndex][param].isNil, {
+			controlBusHandlers[orbitIndex].put(param, Pair(task, resetTask));
+			task.start;
+		}, {
+			controlBusHandlers[orbitIndex][param].linkAcross.stop;
+		});
+
+		controlBusHandlers[orbitIndex][param].linkAcross.play(doReset: true);
+
+	}
+
 	addRemoteControlListener { OSCFunc ({|msg| {
 		var event = ();
 		var superDirtOSC = NetAddr("127.0.0.1", 57120);
@@ -363,13 +464,29 @@ EqualizerUI : UIFactories{
 			eqParams.do({
 				arg item;
 
-				if (event.at(item.asSymbol).isNil.not, {
-					orbits.at(orbitIndex).set(item.asSymbol, event.at(item.asSymbol));
+				if (event.at(item.asSymbol).asString.beginsWith("c").not, {
+					this.stopControlBusTask(orbitIndex, item.asSymbol, false);
 
-					if (activeOrbit.isNil.not, {
-						this.updateEQ(orbits.at(orbitIndex));
-					})
+					if (event.at(item.asSymbol).isNil.not, {
+						orbits.at(orbitIndex).set(item.asSymbol, event.at(item.asSymbol));
+					}, {
+						orbits.at(orbitIndex).set(item.asSymbol, loadedOrbitsPreset[orbitIndex].at(item.asSymbol));
+					});
+				}, {
+					var busId = event.at(item.asSymbol).asString.split($c)[1].asInteger;
+					var shallUIBeUpdated = event.at(\shallUIBeUpdated);
+
+					controlBusses[busId].getSynchronous({
+						|value|
+						orbits.at(orbitIndex).set(item.asSymbol, value);
+					});
+
+					this.createControlBusHandler(orbitIndex, item.asSymbol, event.at(\delta), busId, shallUIBeUpdated);
 				});
+			});
+
+			if (activeOrbit.isNil.not && event.at(\shallUIBeUpdated) == 1.0, {
+				this.updateEQ(orbits.at(orbitIndex));
 			});
 
 			equalizerElements.keysValuesDo({
