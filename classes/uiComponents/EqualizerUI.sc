@@ -347,7 +347,8 @@ EqualizerUI : UIFactories{
 				var bands = #[ \hiPass, \loShelf, \loPeak, \midPeak, \hiPeak, \hiShelf,\loPass];
 				var freqSymbol = (bands[select] ++ "Freq").asSymbol;
 				var gainSymbol = (bands[select] ++ "Gain").asSymbol;
-				var rsSymbol = (bands[select] ++ "Rs").asSymbol;
+				var suffix = if(Set[0,2,3,4,6].includes(select), {"Rq"}, {"Rs"});
+				var rsSymbol = (bands[select] ++ suffix).asSymbol;
 
 				loadedOrbitsPreset[activeOrbit.orbitIndex].put(freqSymbol, freq);
 				activeOrbit.set(freqSymbol, freq);
@@ -381,7 +382,8 @@ EqualizerUI : UIFactories{
 					this.setOrbitEQValues(activeOrbit);
 					this.setEmptyButtonState(equalizerElements[property][\element], true, activeOrbit, property);
 					this.setEQuiValues(activeOrbit);
-				})
+					loadedOrbitsPreset[activeOrbit.orbitIndex].put(property, activeOrbit.get(property));
+				});
 			)
 		    ]));
 			this.setEmptyButtonState(equalizerElements[property][\element], false, activeOrbit, property);
@@ -414,42 +416,46 @@ EqualizerUI : UIFactories{
 			controlBusHandlers.put(orbitIndex, Dictionary.new);
 		});
 
-		task = Task {
-			loop {
+
+			task = Task {
+
 				0.05.wait;
-				controlBusses[busId].get({
-					|value|
 
-					if (orbits.at(orbitIndex).get(param) != value, {
-						orbits.at(orbitIndex).set(param, value);
+				loop {
+					controlBusses[busId].get({
+						|value |
 
-						if (activeOrbit.isNil.not && shallUIBeUpdated == 1.0, {
-							{
-								this.updateEQ(orbits.at(orbitIndex));
-							}.defer;
+						if (orbits.at(orbitIndex).get(param) != value, {
+
+							orbits.at(orbitIndex).set(param, value);
+
+							if (shallUIBeUpdated == 1.0, {
+								{
+									this.updateEQ(orbits.at(orbitIndex));
+								}.defer;
+							});
 						});
 					});
-				});
-		    };
-		};
+					0.001.wait;
+				};
+			};
 
-		resetTask = Task {
-			(delta + 0.1).wait;
-			this.stopControlBusTask(orbitIndex, param, true);
-		};
+			resetTask = Task {
+				(delta + 0.1).wait;
+				this.stopControlBusTask(orbitIndex, param, true);
+			};
 
-		if (controlBusHandlers[orbitIndex][param].isNil, {
-			controlBusHandlers[orbitIndex].put(param, Pair(task, resetTask));
-			task.start;
-		}, {
-			controlBusHandlers[orbitIndex][param].linkAcross.stop;
-		});
+			if (controlBusHandlers[orbitIndex][param].isNil, {
+				controlBusHandlers[orbitIndex].put(param, Pair(task, resetTask));
+				task.start;
+			}, {
+				controlBusHandlers[orbitIndex][param].linkAcross.stop;
+			});
 
-		controlBusHandlers[orbitIndex][param].linkAcross.play(doReset: true);
-
+			controlBusHandlers[orbitIndex][param].linkAcross.play(doReset: true);
 	}
 
-	addRemoteControlListener { OSCFunc ({|msg| {
+	addRemoteControlListener { OSCFunc ({|msg, time| {
 		var event = ();
 		var superDirtOSC = NetAddr("127.0.0.1", 57120);
 		var orbitIndex;
@@ -472,21 +478,17 @@ EqualizerUI : UIFactories{
 					}, {
 						orbits.at(orbitIndex).set(item.asSymbol, loadedOrbitsPreset[orbitIndex].at(item.asSymbol));
 					});
+
+					if (activeOrbit.isNil.not && event.at(\shallUIBeUpdated) == 1.0, {
+						this.updateEQ(orbits.at(orbitIndex));
+					});
+
 				}, {
 					var busId = event.at(item.asSymbol).asString.split($c)[1].asInteger;
 					var shallUIBeUpdated = event.at(\shallUIBeUpdated);
 
-					controlBusses[busId].getSynchronous({
-						|value|
-						orbits.at(orbitIndex).set(item.asSymbol, value);
-					});
-
 					this.createControlBusHandler(orbitIndex, item.asSymbol, event.at(\delta), busId, shallUIBeUpdated);
 				});
-			});
-
-			if (activeOrbit.isNil.not && event.at(\shallUIBeUpdated) == 1.0, {
-				this.updateEQ(orbits.at(orbitIndex));
 			});
 
 			equalizerElements.keysValuesDo({
@@ -495,8 +497,6 @@ EqualizerUI : UIFactories{
 			});
 		});
 	}.defer;
-	}, ("/SuperDirtMixer"), recvPort: 57121).fix;
+	}, ("/dirt/play"), recvPort: 57120).fix;
 	}
-
-
 }
