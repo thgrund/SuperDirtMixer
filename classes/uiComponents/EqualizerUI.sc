@@ -398,13 +398,13 @@ EqualizerUI : UIFactories{
 				controlBusHandlers[orbitIndex].removeAt(param);
 			});
 
-			if (reset, {
+			/*if (reset, {
 				orbits[orbitIndex].set(param, loadedOrbitsPreset[orbitIndex][param]);
 
 				{
 					this.updateEQ(orbits.at(orbitIndex));
 				}.defer;
-			});
+			});*/
 		})
 	}
 
@@ -419,7 +419,7 @@ EqualizerUI : UIFactories{
 
 			task = Task {
 
-				0.05.wait;
+				//0.05.wait;
 
 				loop {
 					controlBusses[busId].get({
@@ -470,25 +470,25 @@ EqualizerUI : UIFactories{
 			eqParams.do({
 				arg item;
 
-				if (event.at(item.asSymbol).asString.beginsWith("c").not, {
-					this.stopControlBusTask(orbitIndex, item.asSymbol, false);
+				if (event.at(item.asSymbol).notNil, {
 
-					if (event.at(item.asSymbol).isNil.not, {
+					if (event.at(item.asSymbol).asString.beginsWith("c").not, {
+						this.stopControlBusTask(orbitIndex, item.asSymbol, false);
 						orbits.at(orbitIndex).set(item.asSymbol, event.at(item.asSymbol));
 					}, {
-						orbits.at(orbitIndex).set(item.asSymbol, loadedOrbitsPreset[orbitIndex].at(item.asSymbol));
-					});
+						var busId = event.at(item.asSymbol).asString.split($c)[1].asInteger;
+						var shallUIBeUpdated = event.at(\shallUIBeUpdated);
 
-					if (activeOrbit.isNil.not && event.at(\shallUIBeUpdated) == 1.0, {
-						this.updateEQ(orbits.at(orbitIndex));
+						this.createControlBusHandler(orbitIndex, item.asSymbol, event.at(\delta), busId, shallUIBeUpdated);
 					});
-
 				}, {
-					var busId = event.at(item.asSymbol).asString.split($c)[1].asInteger;
-					var shallUIBeUpdated = event.at(\shallUIBeUpdated);
-
-					this.createControlBusHandler(orbitIndex, item.asSymbol, event.at(\delta), busId, shallUIBeUpdated);
+					orbits.at(orbitIndex).set(item.asSymbol, loadedOrbitsPreset[orbitIndex].at(item.asSymbol));
+					this.stopControlBusTask(orbitIndex, item.asSymbol, false);
 				});
+			});
+
+			if (activeOrbit.isNil.not && event.at(\shallUIBeUpdated) == 1.0, {
+				this.updateEQ(orbits.at(orbitIndex));
 			});
 
 			equalizerElements.keysValuesDo({
