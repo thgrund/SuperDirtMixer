@@ -8,7 +8,7 @@ GlobalEffects {
 
 	init {
 		|initDirt|
-		fxOrder = [\dirt_master_mix, \dirt_global_eq, \dirt_global_compressor];
+		fxOrder = [\dirt_global_eq, \dirt_global_compressor, \dirt_master_mix];
 		notFoundIndex = -1;
 		dirt = initDirt;
 	}
