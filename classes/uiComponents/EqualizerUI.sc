@@ -58,7 +58,6 @@ EqualizerUI : UIFactories{
 				this.disableUI();
 				this.updateGlobalEffect(activeOrbit);
 			});
-
 		});
 
 
@@ -397,14 +396,6 @@ EqualizerUI : UIFactories{
 				controlBusHandlers[orbitIndex][param].linkDown.stop;
 				controlBusHandlers[orbitIndex].removeAt(param);
 			});
-
-			/*if (reset, {
-				orbits[orbitIndex].set(param, loadedOrbitsPreset[orbitIndex][param]);
-
-				{
-					this.updateEQ(orbits.at(orbitIndex));
-				}.defer;
-			});*/
 		})
 	}
 

@@ -4,4 +4,4 @@
 	\author: 		"Thomas Grund (MrReason)",
 	\since: 		"2023",
 	\dependencies:  ["SuperDirt", "https://github.com/thgrund/EQui", "JSONlib"]
-a
+)

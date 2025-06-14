@@ -53,6 +53,7 @@ Renders the mixer ui with all the settings you made before.
 
 IMAGE::mixer.png::
 
+
 SUBSECTION:: UI configurations
 
 METHOD:: disableMasterPeakRMS
@@ -84,7 +85,6 @@ need differ. In the custom VST example below, the value \reverb will be used ins
 
 SUBSECTION:: Communication with TidalCycles
 This mixer ui is able to send OSC messages to TidalCycles. This will mainly be used to solo or mute orbits. After the mixer was initialized, it automatically trys to establish a connection on location on the port 6010 (TidalCycles default value).
-
 
 SUBSECTION:: Preset management
 
