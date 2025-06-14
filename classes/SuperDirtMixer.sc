@@ -182,6 +182,9 @@ SuperDirtMixer {
 			//dirt.stopSendRMS;
 		});
 		window.front;
+
+		eventHandler.emitEvent(\resetAll);
+
 	}
 
 }
