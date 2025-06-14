@@ -10,6 +10,7 @@ SuperDirtMixer {
 	var <>presetPath = "../../presets/";
 	var <>prMasterBus;
 	var <>switchControlButtonEvent;
+	var >switchLiveButtonEvent;
 	var >midiInternalOut;
 	var reverbVariableName = \room;
 	var reverbNativeSize = 0.95;
@@ -121,7 +122,7 @@ SuperDirtMixer {
 		var settingsContainer = CompositeView(window, Rect(0, 0, 135, 500)).background_(Color.gray(0.85));
 		var midiContainer = CompositeView(window, Rect(0, 0, 135, 500)).background_(Color.gray(0.85));
 		var masterContainer = CompositeView(window, Rect(0, 0, 135, 500)).background_(Color.gray(0.85));
-		var masterUI = MasterUI.new(eventHandler);
+		var masterUI = MasterUI.new(eventHandler, switchLiveButtonEvent);
 		var mixerUI = MixerUI.new(eventHandler, dirt.orbits);
 		var utilityUI =  UtilityUI.new(eventHandler, dirt.orbits, presetPath, defaultParentEvent);
 		var equalizerUI = EqualizerUI.new(eventHandler, dirt.orbits, dirt.controlBusses, fxContainer);
