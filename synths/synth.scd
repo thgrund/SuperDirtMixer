@@ -109,8 +109,17 @@ SynthDef("stageMaster", {
 		db: highEndDb
 	);
 
+
 	// Limiter
 	input = Limiter.ar(input, limiterLevel);
+	ReplaceOut.ar(out, input);
+}).add;
+
+SynthDef("masterGain", {
+	|out = 0, masterGain = 2.0|
+	var input = In.ar(out, numChannels);
+
+	input = input * masterGain;
 	ReplaceOut.ar(out, input);
 }).add;
 

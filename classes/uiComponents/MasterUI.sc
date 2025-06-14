@@ -1,17 +1,20 @@
 MasterUI : UIFactories {
 	var handler;
+	var switchLiveButtonEvent;
 	var leftMasterIndicator, rightMasterIndicator;
 	var stageMaster;
-	var synth;
+	var synth, masterGainSynth;
 
-    *new { | initHandler |
-		^super.new.init(initHandler);
+    *new { | initHandler, initSwitchLiveButtonEvent |
+		^super.new.init(initHandler, initSwitchLiveButtonEvent);
     }
 
 	init {
-		| initHandler |
+		| initHandler, initSwitchLiveButtonEvent |
 		var uiKnobFactories = UIKnobFactories();
 		handler = initHandler;
+		switchLiveButtonEvent = initSwitchLiveButtonEvent;
+
 		stageMaster = Dictionary.new;
 
 		leftMasterIndicator = LevelIndicator.new.maxWidth_(12).drawsPeak_(true).warning_(0.9).critical_(1.0);
@@ -33,6 +36,9 @@ MasterUI : UIFactories {
 					synth.run(false);
 					this.changeButtonsStatus(false);
 				});
+
+				switchLiveButtonEvent.value(button.value);
+
 			})
 		]));
 
@@ -79,6 +85,7 @@ MasterUI : UIFactories {
 	handleEvent { |eventName, eventData|
 		if (eventName == \releaseAll, {
 			synth.free;
+			masterGainSynth.free;
 		});
 	}
 
@@ -92,15 +99,21 @@ MasterUI : UIFactories {
 
 	createUI {
 		|container, prMasterBus|
+			var gainSlider = Slider.new.fixedWidth_(30).value_(0.4).action_({
+				| slider |
+				masterGainSynth.set(\masterGain, slider.value.linlin(0,1,0,5));
+			});
 
 		    if (prMasterBus.isNil, {
 			    stageMaster[\live][\element].enabled_(false);
 			    stageMaster[\live][\element].states_([["Live", Color.grey(0.4), Color.white]]);
 		    },{
-			    if (synth.isNil.not, {synth.set(\out, prMasterBus)})
+			    if (synth.isNil.not, {synth.set(\out, prMasterBus)});
+				if (masterGainSynth.isNil.not, {masterGainSynth.set(\out, prMasterBus)});
 		    });
 
 			if (synth.isNil && currentEnvironment[\SuperDirtMixer][\wasStageMasterSynthCreated] == false, {
+			    masterGainSynth = Synth.new(\masterGain, target: RootNode(~dirt.server), addAction: \addToTail);
 			    synth = Synth.newPaused(\stageMaster, target: RootNode(~dirt.server), addAction: \addToTail);
 			    currentEnvironment[\SuperDirtMixer].put(\wasStageMasterSynthCreated, true);
 		    });
@@ -108,7 +121,7 @@ MasterUI : UIFactories {
 		    container.layout = VLayout(
 				/* DEFINE MASTER UI : EXTRACT -> Stage master */
 				StaticText.new.string_("Master").align_(\center),
-				HLayout(leftMasterIndicator,rightMasterIndicator).spacing_(0),
+				HLayout(leftMasterIndicator,rightMasterIndicator, gainSlider).spacing_(0),
 				10,
 				StaticText.new.string_("Stage Master").align_(\center),
 				10,
