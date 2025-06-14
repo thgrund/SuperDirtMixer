@@ -39,13 +39,15 @@ CompressorUI : UIFactories {
 		width = 340;
 
 		if (orbits.isNil.not, {
+			var effect = GlobalDirtEffect(\dirt_global_compressor, [\activeCompressor, \cpAttack, \cpRelease, \cpThresh, \cpTrim, \cpGain, \cpRatio, \cpLookahead, \cpSaturate, \cpHpf, \cpKnee, \cpBias]);
+			effect.active_(false);
 
 			activeOrbit = orbits[0];
 			this.setOrbits(defaultParentEvent);
 
 			orbits.do({|orbit|
 				globalEffects.addGlobalEffect(
-				orbit, GlobalDirtEffect(\dirt_global_compressor, [\activeCompressor, \cpAttack, \cpRelease, \cpThresh, \cpTrim, \cpGain, \cpRatio, \cpLookahead, \cpSaturate, \cpHpf, \cpKnee, \cpBias]))});
+				orbit, effect)});
 
 		});
 
