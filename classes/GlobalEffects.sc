@@ -14,7 +14,6 @@ GlobalEffects {
 	}
 
 	sortGlobalEffects { | orbit |
-		var sortedList;
 
 		var sortFunction = { |a, b|
 			var indexA;
@@ -51,14 +50,13 @@ GlobalEffects {
 
 		if (isNotIncluded, {
 			orbit.globalEffects = orbit.globalEffects.addFirst(globalDirtEffect);
+			this.sortGlobalEffects(orbit);
 
 			if (nodeShouldBeAdded == true, {
-				globalDirtEffect.play(
+                globalDirtEffect.play(
 					orbit.group, orbit.outBus, orbit.dryBus, orbit.globalEffectBus, orbit.orbitIndex
 				);
-				this.sortGlobalEffects(orbit);
-
-				if (~dirt.isNil.not, {
+                if (~dirt.isNil.not, {
 					orbit.globalEffects.reverseDo({|effect|
 						~dirt.server.sendMsg("/n_after", effect.synth.nodeID, orbit.group)
 					});

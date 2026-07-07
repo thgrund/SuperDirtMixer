@@ -29,6 +29,8 @@ SynthDef("dirt_global_compressor" ++ numChannels, { |out, dryBus, effectBus, gat
 	var cpKneelag;
 	var env = EnvGen.kr(Env.asr, gate, doneAction:1);
 
+    SendReply.kr(Impulse.kr(4), '/compressor', [orbitIndex, dryBus]);
+
 	dry = In.ar(dryBus, numChannels);
 
 	dryAmplitude = Amplitude.ar(dry, 0.001, 1.0);
@@ -59,7 +61,7 @@ SynthDef("dirt_global_compressor" ++ numChannels, { |out, dryBus, effectBus, gat
 	in = in * env;
 	DirtPause.ar(in, graceTime: 4);
 
-	//SendReply.kr(Impulse.kr(4), '/compressor', [dryAmplitude, gainReduction, orbitIndex]);
+        // dryAmplitude,
 	SendPeakRMS.kr(dry, replyRate: 16, peakLag: 3, cmdName:"/cpInRms", replyID: orbitIndex);
 	SendPeakRMS.kr(compressedSound, replyRate: 16, peakLag: 3, cmdName:"/cpCompressedRms", replyID: orbitIndex);
 
@@ -108,7 +110,6 @@ SynthDef("stageMaster", {
 		rs: 1.0,
 		db: highEndDb
 	);
-
 
 	// Limiter
 	input = Limiter.ar(input, limiterLevel);
